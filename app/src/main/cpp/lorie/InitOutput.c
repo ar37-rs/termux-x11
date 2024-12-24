@@ -573,7 +573,7 @@ static Bool lorieRedraw(__unused ClientPtr pClient, __unused void *closure) {
 }
 
 static CARD32 lorieFramecounter(unused OsTimerPtr timer, unused CARD32 time, unused void *arg) {
-    renderer_print_fps(5000);
+    // renderer_print_fps(5000);
     return 5000;
 }
 
