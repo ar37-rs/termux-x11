@@ -145,9 +145,8 @@ static struct {
 } cursor;
 
 GLuint g_texture_program = 0, gv_pos = 0, gv_coords = 0;
-// GLuint g_texture_program_bgra = 0, gv_pos_bgra = 0, gv_coords_bgra = 0;
 
-int renderer_init(JNIEnv* env, int* legacy_drawing, uint8_t* flip) {
+int renderer_init(JNIEnv* env, int* legacy_drawing) {
     EGLint major, minor;
     EGLint numConfigs;
     const EGLint configAttribs[] = {
@@ -222,7 +221,7 @@ int renderer_init(JNIEnv* env, int* legacy_drawing, uint8_t* flip) {
         return 0;
     }
 
-    {
+    
         // Some devices do not support sampling from HAL_PIXEL_FORMAT_BGRA_8888, here we are checking it.
         const EGLint imageAttributes[] = {EGL_IMAGE_PRESERVED_KHR, EGL_TRUE, EGL_NONE};
         EGLClientBuffer clientBuffer;
@@ -241,10 +240,9 @@ int renderer_init(JNIEnv* env, int* legacy_drawing, uint8_t* flip) {
         
         uint32_t *pixels;
         AHardwareBuffer_lock(new, AHARDWAREBUFFER_USAGE_CPU_WRITE_OFTEN | AHARDWAREBUFFER_USAGE_CPU_READ_OFTEN, -1, NULL, (void **) &pixels);
-        // pixels[0] = 0xAABBCCDD;
         AHardwareBuffer_unlock(new, NULL);
 
-        clientBuffer = eglGetNativeClientBufferANDROID(new);
+
         
 
 
@@ -308,86 +306,30 @@ int renderer_init(JNIEnv* env, int* legacy_drawing, uint8_t* flip) {
             eglDestroyContext(egl_display, testctx);
             eglDestroyImageKHR(egl_display, img);
             eglDestroySurface(egl_display, checksfc);
-            AHardwareBuffer_release(new);
-        }
-    }
-
+            AHardwareBuffer_release(new);        
     return 1;
-}
-
-static void renderer_unset_buffer(void) {
-    if (eglGetCurrentContext() == EGL_NO_CONTEXT) {
-        loge("There is no current context, `renderer_set_buffer` call is cancelled");
-        return;
-    }
-
-    log("renderer_set_buffer0");
-    if (image)
-        eglDestroyImageKHR(egl_display, image);
-    if (buffer)
-        AHardwareBuffer_release(buffer);
-
-    buffer = NULL;
 }
 
 void renderer_set_buffer(JNIEnv* env, AHardwareBuffer* buf) {
     const EGLint imageAttributes[] = {EGL_IMAGE_PRESERVED_KHR, EGL_TRUE, EGL_NONE};
-    EGLClientBuffer clientBuffer;
-    AHardwareBuffer_Desc desc = {0};
+    
     if (eglGetCurrentContext() == EGL_NO_CONTEXT) {
         loge("There is no current context, `renderer_set_buffer` call is cancelled");
         return;
     }
-
-    renderer_unset_buffer();
-
-    buffer = buf;
 
     glBindTexture(GL_TEXTURE_2D, display.id); checkGlError();
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR); checkGlError();
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR); checkGlError();
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE); checkGlError();
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE); checkGlError();
-    if (buffer) {
-        AHardwareBuffer_acquire(buffer);
-        AHardwareBuffer_describe(buffer, &desc);
-
-        display.width = (float) desc.width;
-        display.height = (float) desc.height;
-
-        clientBuffer = eglGetNativeClientBufferANDROID(buffer);
-        if (!clientBuffer) {
-            eglCheckError(__LINE__);
-            loge("Failed to obtain EGLClientBuffer from AHardwareBuffer");
-        }
-        image = clientBuffer ? eglCreateImageKHR(egl_display, EGL_NO_CONTEXT, EGL_NATIVE_BUFFER_ANDROID, clientBuffer, imageAttributes) : NULL;
-        if (image != NULL) {
-            glEGLImageTargetTexture2DOES(GL_TEXTURE_2D, image);
-            flip = desc.format != AHARDWAREBUFFER_FORMAT_B8G8R8A8_UNORM;
-        } else {
-            if (clientBuffer) {
-                eglCheckError(__LINE__);
-                loge("Binding AHardwareBuffer to an EGLImage failed.");
-            }
-
-            display.width = 1;
-            display.height = 1;
-            uint32_t data = {0};
-            glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, 1, 1, 0, GL_RGBA, GL_UNSIGNED_BYTE, &data);
-            checkGlError();
-        }
-        checkGlError();
-    } else {
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE); checkGlError(); 
         display.width = 1;
         display.height = 1;
         uint32_t data = {0};
-        loge("There is no AHardwareBuffer, nothing to be bound.");
         glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, 1, 1, 0, GL_RGBA, GL_UNSIGNED_BYTE, &data); checkGlError();
-    }
 
-    renderer_redraw(env, flip);
 
-    log("renderer_set_buffer %p %d %d", buffer, desc.width, desc.height);
+    renderer_redraw(env);
 }
 
 void renderer_set_window(JNIEnv* env, jobject new_surface, AHardwareBuffer* new_buffer) {
@@ -542,7 +484,7 @@ int renderer_should_redraw(void) {
     return sfc != EGL_NO_SURFACE && eglGetCurrentContext() != EGL_NO_CONTEXT;
 }
 
-int renderer_redraw(JNIEnv* env, uint8_t flip) {
+int renderer_redraw(JNIEnv* env) {
     int err = EGL_SUCCESS;
 
     if (!sfc || eglGetCurrentContext() == EGL_NO_CONTEXT)
