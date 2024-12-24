@@ -91,5 +91,5 @@ if(${ANDROID_ABI} MATCHES "arm64-v8a")
                 "xrio/math.c"
                 "xrio/renderer.c")
     target_link_options(XRio PRIVATE "-Wl,--as-needed" "-Wl,--no-undefined" "-fvisibility=hidden")
-    target_link_libraries(XRio "-Wl,--whole-archive" "-Wl,--no-whole-archive" android "L{$(pwd)}../jniLibs/arm64-v8a log EGL_angle GLESv2_angle openxr_loader)
+    target_link_libraries(XRio "-Wl,--whole-archive" "-Wl,--no-whole-archive" android "L/home/runner/work/termux-x11/termux-x11/app/src/main/jniLibs/arm64-v8a" log EGL_angle GLESv2_angle openxr_loader)
 endif()
