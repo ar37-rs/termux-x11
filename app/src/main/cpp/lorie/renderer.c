@@ -701,8 +701,8 @@ static void draw(GLuint id, float x0, float y0, float x1, float y1, uint8_t flip
     glEnableVertexAttribArray(c); checkGlError();
     glDrawArrays(GL_TRIANGLE_STRIP, 0, 4); checkGlError();
 
-    glDisableVertexAttribArray(p); checkGlError();
-    glDisableVertexAttribArray(c); checkGlError();
+    // glDisableVertexAttribArray(p); checkGlError();
+    // glDisableVertexAttribArray(c); checkGlError();
     glDeleteTextures(1, &id); checkGlError();
     
 }
