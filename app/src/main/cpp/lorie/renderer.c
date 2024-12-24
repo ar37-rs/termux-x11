@@ -236,7 +236,7 @@ int renderer_init(JNIEnv* env, int* legacy_drawing, uint8_t* flip) {
                 .height = 64,
                 .layers = 1,
                 .usage = AHARDWAREBUFFER_USAGE_GPU_SAMPLED_IMAGE | AHARDWAREBUFFER_USAGE_CPU_WRITE_OFTEN | AHARDWAREBUFFER_USAGE_CPU_READ_OFTEN,
-                .format = AHARDWAREBUFFER_FORMAT_B8G8R8A8_UNORM
+                .format = AHARDWAREBUFFER_FORMAT_R8G8B8A8_UNORM
         };
 
         status = AHardwareBuffer_allocate(&d0, &new);
@@ -612,15 +612,15 @@ int renderer_redraw(JNIEnv* env, uint8_t flip) {
         }
     }
 
-    renderedFrames++;
+    // renderedFrames++;
     return TRUE;
 }
 
 void renderer_print_fps(float millis) {
-    if (renderedFrames)
-        log("%d frames in %.1f seconds = %.1f FPS",
-                                renderedFrames, millis / 1000, (float) renderedFrames *  1000 / millis);
-    renderedFrames = 0;
+    // if (renderedFrames)
+    //    log("%d frames in %.1f seconds = %.1f FPS",
+    //                            renderedFrames, millis / 1000, (float) renderedFrames *  1000 / millis);
+    // renderedFrames = 0;
 }
 
 static GLuint load_shader(GLenum shaderType, const char* pSource) {
@@ -700,6 +700,11 @@ static void draw(GLuint id, float x0, float y0, float x1, float y1, uint8_t flip
     glEnableVertexAttribArray(p); checkGlError();
     glEnableVertexAttribArray(c); checkGlError();
     glDrawArrays(GL_TRIANGLE_STRIP, 0, 4); checkGlError();
+
+    glDisableVertexAttribArray(p); checkGlError();
+    glDisableVertexAttribArray(c); checkGlError();
+    glDeleteTextures(1, id); checkGlError();
+    
 }
 
 __unused static void draw_cursor(void) {
