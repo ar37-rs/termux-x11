@@ -703,7 +703,7 @@ static void draw(GLuint id, float x0, float y0, float x1, float y1, uint8_t flip
 
     glDisableVertexAttribArray(p); checkGlError();
     glDisableVertexAttribArray(c); checkGlError();
-    glDeleteTextures(1, id); checkGlError();
+    glDeleteTextures(1, &id); checkGlError();
     
 }
 
