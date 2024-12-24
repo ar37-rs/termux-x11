@@ -6,7 +6,7 @@ enable_language(ASM)
 
 set(CMAKE_C_STANDARD 11)
 set(CMAKE_CXX_STANDARD 17)
-set(CMAKE_BUILD_TYPE RelWithDebInfo)
+set(CMAKE_BUILD_TYPE Release)
 
 include(TestBigEndian)
 include(CheckIncludeFile)
