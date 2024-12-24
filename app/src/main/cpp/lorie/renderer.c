@@ -1,4 +1,4 @@
-#pragma clang diagnostic ignored "-Wunknown-pragmas"
+n#pragma clang diagnostic ignored "-Wunknown-pragmas"
 #pragma ide diagnostic ignored "UnusedParameter"
 #pragma ide diagnostic ignored "DanglingPointer"
 #pragma ide diagnostic ignored "ConstantConditionsOC"
@@ -444,7 +444,7 @@ void renderer_set_window(JNIEnv* env, jobject new_surface, AHardwareBuffer* new_
     } else renderer_set_buffer(env, new_buffer);
 }
 
-void renderer_update_root(int w, int h, void* data, uint8_t flip) {
+void renderer_update_root(int w, int h, void* data) {
     if (eglGetCurrentContext() == EGL_NO_CONTEXT || !w || !h)
         return;
 
