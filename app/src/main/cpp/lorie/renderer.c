@@ -122,8 +122,6 @@ static const char vertex_shader[] =
     "}\n"
 
 static const char fragment_shader[] = FRAGMENT_SHADER();
-static const char fragment_shader_bgra[] = FRAGMENT_SHADER(".bgra");
-
 static EGLDisplay egl_display = EGL_NO_DISPLAY;
 static EGLContext ctx = EGL_NO_CONTEXT;
 static EGLSurface sfc = EGL_NO_SURFACE;
@@ -147,7 +145,7 @@ static struct {
 } cursor;
 
 GLuint g_texture_program = 0, gv_pos = 0, gv_coords = 0;
-GLuint g_texture_program_bgra = 0, gv_pos_bgra = 0, gv_coords_bgra = 0;
+// GLuint g_texture_program_bgra = 0, gv_pos_bgra = 0, gv_coords_bgra = 0;
 
 int renderer_init(JNIEnv* env, int* legacy_drawing, uint8_t* flip) {
     EGLint major, minor;
@@ -240,45 +238,16 @@ int renderer_init(JNIEnv* env, int* legacy_drawing, uint8_t* flip) {
         };
 
         status = AHardwareBuffer_allocate(&d0, &new);
-        if (status != 0 || new == NULL) {
-            loge("Failed to allocate native buffer (%p, error %d)", new, status);
-            loge("Forcing legacy drawing");
-            *legacy_drawing = 1;
-            return 1;
-        }
-
+        
         uint32_t *pixels;
-        if (AHardwareBuffer_lock(new, AHARDWAREBUFFER_USAGE_CPU_WRITE_OFTEN | AHARDWAREBUFFER_USAGE_CPU_READ_OFTEN, -1, NULL, (void **) &pixels) == 0) {
-            pixels[0] = 0xAABBCCDD;
-            AHardwareBuffer_unlock(new, NULL);
-        } else {
-            loge("Failed to lock native buffer (%p, error %d)", new, status);
-            loge("Forcing legacy drawing");
-            *legacy_drawing = 1;
-            AHardwareBuffer_release(new);
-            return 1;
-        }
+        AHardwareBuffer_lock(new, AHARDWAREBUFFER_USAGE_CPU_WRITE_OFTEN | AHARDWAREBUFFER_USAGE_CPU_READ_OFTEN, -1, NULL, (void **) &pixels);
+        // pixels[0] = 0xAABBCCDD;
+        AHardwareBuffer_unlock(new, NULL);
 
         clientBuffer = eglGetNativeClientBufferANDROID(new);
-        if (!clientBuffer) {
-            eglCheckError(__LINE__);
-            loge("Failed to obtain EGLClientBuffer from AHardwareBuffer");
-            loge("Forcing legacy drawing");
-            *legacy_drawing = 1;
-            return 1;
-        }
+        
 
-        if (!(img = eglCreateImageKHR(egl_display, EGL_NO_CONTEXT, EGL_NATIVE_BUFFER_ANDROID, clientBuffer, imageAttributes))) {
-            if (eglGetError() == EGL_BAD_PARAMETER) {
-                loge("Sampling from HAL_PIXEL_FORMAT_BGRA_8888 is not supported, forcing AHARDWAREBUFFER_FORMAT_R8G8B8X8_UNORM");
-                *flip = 1;
-            } else {
-                loge("Failed to obtain EGLImageKHR from EGLClientBuffer");
-                loge("Forcing legacy drawing");
-                *legacy_drawing = 1;
-            }
-            AHardwareBuffer_release(new);
-        } else {
+
             // For some reason all devices I checked had no GL_EXT_texture_format_BGRA8888 support, but some of them still provided BGRA extension.
             // EGL does not provide functions to query texture format in runtime.
             // Workarounds are less performant but at least they let us use Termux:X11 on devices with missing BGRA support.
@@ -335,13 +304,6 @@ int renderer_init(JNIEnv* env, int* legacy_drawing, uint8_t* flip) {
             glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, texture, 0); checkGlError();
             uint32_t pixel[64*64];
             glReadPixels(0, 0, 1, 1, GL_RGBA, GL_UNSIGNED_BYTE, &pixel); checkGlError();
-            if (pixel[0] == 0xAABBCCDD) {
-                log("Xlorie: GLES draws pixels unchanged, probably system does not support AHARDWAREBUFFER_FORMAT_B8G8R8A8_UNORM. Forcing bgra.\n");
-                *flip = 1;
-            } else if (pixel[0] != 0xAADDCCBB) {
-                log("Xlorie: GLES receives broken pixels. Forcing legacy drawing. 0x%X\n", pixel[0]);
-                *legacy_drawing = 1;
-            }
             eglMakeCurrent(egl_display, EGL_NO_SURFACE, EGL_NO_SURFACE, EGL_NO_CONTEXT);
             eglDestroyContext(egl_display, testctx);
             eglDestroyImageKHR(egl_display, img);
@@ -372,8 +334,6 @@ void renderer_set_buffer(JNIEnv* env, AHardwareBuffer* buf) {
     const EGLint imageAttributes[] = {EGL_IMAGE_PRESERVED_KHR, EGL_TRUE, EGL_NONE};
     EGLClientBuffer clientBuffer;
     AHardwareBuffer_Desc desc = {0};
-    uint8_t flip = 0;
-
     if (eglGetCurrentContext() == EGL_NO_CONTEXT) {
         loge("There is no current context, `renderer_set_buffer` call is cancelled");
         return;
@@ -506,18 +466,8 @@ void renderer_set_window(JNIEnv* env, jobject new_surface, AHardwareBuffer* new_
             return;
         }
 
-        g_texture_program_bgra = create_program(vertex_shader, fragment_shader_bgra);
-        if (!g_texture_program_bgra) {
-            log("Xlorie: GLESv2: Unable to create bgra shader program.\n");
-            eglCheckError(__LINE__);
-            return;
-        }
-
         gv_pos = (GLuint) glGetAttribLocation(g_texture_program, "position"); checkGlError();
         gv_coords = (GLuint) glGetAttribLocation(g_texture_program, "texCoords"); checkGlError();
-
-        gv_pos_bgra = (GLuint) glGetAttribLocation(g_texture_program_bgra, "position"); checkGlError();
-        gv_coords_bgra = (GLuint) glGetAttribLocation(g_texture_program_bgra, "texCoords"); checkGlError();
 
         glActiveTexture(GL_TEXTURE0); checkGlError();
         glGenTextures(1, &display.id); checkGlError();
@@ -689,10 +639,10 @@ static void draw(GLuint id, float x0, float y0, float x1, float y1, uint8_t flip
         x1, -y1, 0.f, 1.f, 1.f,
     };
 
-    GLuint p = flip ? gv_pos_bgra : gv_pos, c = flip ? gv_coords_bgra : gv_coords;
+    GLuint p = gv_pos, c = gv_coords;
 
     glActiveTexture(GL_TEXTURE0); checkGlError();
-    glUseProgram(flip ? g_texture_program_bgra : g_texture_program); checkGlError();
+    glUseProgram(g_texture_program); checkGlError();
     glBindTexture(GL_TEXTURE_2D, id); checkGlError();
 
     glVertexAttribPointer(p, 3, GL_FLOAT, GL_FALSE, 20, coords); checkGlError();
@@ -701,10 +651,8 @@ static void draw(GLuint id, float x0, float y0, float x1, float y1, uint8_t flip
     glEnableVertexAttribArray(c); checkGlError();
     glDrawArrays(GL_TRIANGLE_STRIP, 0, 4); checkGlError();
 
-    // glDisableVertexAttribArray(p); checkGlError();
-    // glDisableVertexAttribArray(c); checkGlError();
-    // glDeleteTextures(1, &id); checkGlError();
-    
+    glDisableVertexAttribArray(p); checkGlError();
+    glDisableVertexAttribArray(c); checkGlError();   
 }
 
 __unused static void draw_cursor(void) {
