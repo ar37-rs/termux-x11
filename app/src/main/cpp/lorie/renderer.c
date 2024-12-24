@@ -318,6 +318,8 @@ void renderer_set_buffer(JNIEnv* env, AHardwareBuffer* buf) {
         return;
     }
 
+    renderer_unset_buffer();
+
     glBindTexture(GL_TEXTURE_2D, display.id); checkGlError();
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR); checkGlError();
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR); checkGlError();
@@ -331,6 +333,19 @@ void renderer_set_buffer(JNIEnv* env, AHardwareBuffer* buf) {
 
     renderer_redraw(env);
 }
+static void renderer_unset_buffer(void) {
+    if (eglGetCurrentContext() == EGL_NO_CONTEXT) {
+        loge("There is no current context, `renderer_set_buffer` call is cancelled");
+        return;
+    }
+    log("renderer_set_buffer0");
+    if (image)
+        eglDestroyImageKHR(egl_display, image);
+    if (buffer)
+        AHardwareBuffer_release(buffer);
+    buffer = NULL;
+}
+
 
 void renderer_set_window(JNIEnv* env, jobject new_surface, AHardwareBuffer* new_buffer) {
     EGLNativeWindowType window;
