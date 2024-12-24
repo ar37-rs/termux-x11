@@ -1,0 +1,113 @@
+name: Build Release
+
+on:
+  push:
+    branches:
+      - master
+    paths-ignore:
+      - '**.md'
+      - 'img/**'
+  pull_request:
+    branches:
+      - master
+    paths-ignore:
+      - '**.md'
+      - 'img/**'
+
+jobs:
+  build:
+    name: "Build"
+    runs-on: ubuntu-latest
+    steps:
+    - name: Install dependencies
+      run: |
+        sudo apt update && sudo apt install -y libarchive-tools
+    - name: Clone repository
+      uses: actions/checkout@v4
+      with:
+        submodules: recursive
+    - name: Validation
+      uses: gradle/actions/wrapper-validation@v4
+      
+    - name: Java setup
+      uses: actions/setup-java@v4
+      with:
+        distribution: 'temurin'
+        java-version: '17'
+        
+    - name: Restore cache
+      uses: actions/cache@v4
+      with:
+          path: |
+            ~/.gradle/caches
+            ~/.gradle/wrapper
+          key: ${{ runner.os }}-gradle-${{ hashFiles('**/*.gradle*') }}
+
+          restore-keys: |
+            ${{ runner.os }}-gradle-
+
+    - name: Build
+      run: ./gradlew assembleRelease
+    - name: Build companion package
+      run: ./build_termux_package
+    - name: Store app-arm64-v8a-release
+      uses: actions/upload-artifact@v4
+      with:
+        name: termux-x11-arm64-v8a-release
+        path: ./app/build/outputs/apk/release/app-arm64-v8a-release.apk
+    
+    - name: Store app-armeabi-v7a-release
+      uses: actions/upload-artifact@v4
+      with:
+        name: termux-x11-armeabi-v7a-release
+        path: ./app/build/outputs/apk/release/app-armeabi-v7a-release.apk
+    
+    - name: Store app-universal-release
+      uses: actions/upload-artifact@v4
+      with:
+        name: termux-x11-universal-release
+        path: ./app/build/outputs/apk/release/app-universal-release.apk
+    
+    - name: Store app-x86_64-release
+      uses: actions/upload-artifact@v4
+      with:
+        name: termux-x11-x86_64-release
+        path: ./app/build/outputs/apk/release/app-x86_64-release.apk
+    
+    - name: Store app-x86-release
+      uses: actions/upload-artifact@v4
+      with:
+        name: termux-x11-x86-release
+        path: ./app/build/outputs/apk/release/app-x86-release.apk
+    
+    - name: Store companion package
+      uses: actions/upload-artifact@v4
+      with:
+        name: termux-companion packages
+        path: |
+          ./app/build/outputs/apk/release/termux-x11-*-all.deb
+          ./app/build/outputs/apk/release/termux-x11-*-any.pkg.tar.xz
+        
+    - name: Store unstripped libraries with release symbols
+      uses: actions/upload-artifact@v4
+      with:
+        name: termux-x11-unstripped-libraries-for-ndk-stack
+        path: ./app/build/intermediates/cxx/Release/*
+
+    - name: Update Nightly Release
+      uses: andelf/nightly-release@main
+      if: github.repository == 'termux/termux-x11' && github.ref == 'refs/heads/master'
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        tag_name: nightly
+        name: 'Nightly Release $$'
+        draft: false
+        prerelease: false
+        body: |
+          This is a nightly release of the termux-x11 app.
+          Based on ${{ github.sha }}
+        files: |
+          ./app/build/outputs/apk/release/app-*-release.apk
+          ./app/build/outputs/apk/release/termux-x11-*-all.deb
+          ./app/build/outputs/apk/release/termux-x11-*-any.pkg.tar.xz
