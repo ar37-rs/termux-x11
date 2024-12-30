@@ -114,6 +114,7 @@ typedef struct {
     OsTimerPtr redrawTimer;
     OsTimerPtr fpsTimer;
 
+    Bool cursorMoved;
     int eventFd, stateFd;
 
     struct lorie_shared_server_state* state;
@@ -133,13 +134,12 @@ typedef struct {
 
     uint64_t vblank_interval;
     struct xorg_list vblank_queue;
-    uint64_t current_msc;
 } lorieScreenInfo;
 
 ScreenPtr pScreenPtr;
 static lorieScreenInfo lorieScreen = {
-        .root.width = 1050,
-        .root.height = 1024
+        .root.width = 1024,
+        .root.height = 1050,
         .root.framerate = 60,
         .root.name = "screen",
         .dri3 = TRUE,
@@ -180,7 +180,6 @@ static int create_shmem_region(char const* name, size_t size)
 
 __attribute((constructor())) static void initSharedServerState() {
     pthread_mutexattr_t mutex_attr;
-    pthread_condattr_t cond_attr;
     if (-1 == (lorieScreen.stateFd = create_shmem_region("xserver", sizeof(*lorieScreen.state)))) {
         dprintf(2, "FATAL: Failed to allocate server state.\n");
         _exit(1);
@@ -194,12 +193,6 @@ __attribute((constructor())) static void initSharedServerState() {
     pthread_mutexattr_init(&mutex_attr);
     pthread_mutexattr_setpshared(&mutex_attr, PTHREAD_PROCESS_SHARED);
     pthread_mutex_init(&lorieScreen.state->lock, &mutex_attr);
-    pthread_mutex_init(&lorieScreen.state->cursor.lock, &mutex_attr);
-
-    pthread_condattr_init(&cond_attr);
-    pthread_condattr_setpshared(&cond_attr, PTHREAD_PROCESS_SHARED);
-    pthread_cond_init(&lorieScreen.state->cond, &cond_attr);
-    renderer_set_shared_state(lorieScreen.state);
 }
 
 void lorieActivityConnected(void) {
@@ -367,8 +360,8 @@ static void lorieMoveCursor(unused DeviceIntPtr pDev, unused ScreenPtr pScr, int
     pthread_mutex_lock(&pvfb->state->lock);
     pvfb->state->cursor.x = x;
     pvfb->state->cursor.y = y;
-    pvfb->state->cursor.moved = TRUE;
-    pthread_cond_signal(&pvfb->state->cond);
+    renderer_set_cursor_coordinates(x, y);
+    pvfb->cursorMoved = TRUE;
     pthread_mutex_unlock(&pvfb->state->lock);
 }
 
@@ -407,20 +400,21 @@ static void lorieSetCursor(unused DeviceIntPtr pDev, unused ScreenPtr pScr, Curs
         return;
     }
 
-    pthread_mutex_lock(&pvfb->state->cursor.lock);
+    pthread_mutex_lock(&pvfb->state->lock);
     if (pCurs && bits) {
         pvfb->state->cursor.xhot = bits->xhot;
         pvfb->state->cursor.yhot = bits->yhot;
         pvfb->state->cursor.width = bits->width;
         pvfb->state->cursor.height = bits->height;
         lorieConvertCursor(pCurs, pvfb->state->cursor.bits);
+        renderer_update_cursor(bits->width, bits->height, bits->xhot, bits->yhot, pvfb->state->cursor.bits);
     } else {
         pvfb->state->cursor.xhot = pvfb->state->cursor.yhot = 0;
         pvfb->state->cursor.width = pvfb->state->cursor.height = 0;
+        renderer_update_cursor(0, 0, 0, 0, NULL);
     }
     pvfb->state->cursor.updated = true;
-    pthread_cond_signal(&pvfb->state->cond);
-    pthread_mutex_unlock(&pvfb->state->cursor.lock);
+    pthread_mutex_unlock(&pvfb->state->lock);
 
     if (x0 >= 0 && y0 >= 0)
         lorieMoveCursor(NULL, NULL, x0, y0);
@@ -450,9 +444,9 @@ static void lorieUpdateBuffer(void) {
     if (pvfb->root.legacyDrawing) {
         PixmapPtr pixmap = (PixmapPtr) pScreenPtr->devPrivate;
         DrawablePtr draw = &pixmap->drawable;
+        data0 = malloc(pScreenPtr->width * pScreenPtr->height * 4);
         data1 = (draw->width && draw->height) ? pixmap->devPrivate.ptr : NULL;
         if (data1)
-            data0 = malloc(pScreenPtr->width * pScreenPtr->height * 4);
             pixman_blt(data1, data0, draw->width, pScreenPtr->width, 32, 32, 0, 0, 0, 0,
                        min(draw->width, pScreenPtr->width), min(draw->height, pScreenPtr->height));
         pScreenPtr->ModifyPixmapHeader(pScreenPtr->devPrivate, pScreenPtr->width, pScreenPtr->height, 32, 32, pScreenPtr->width * 4, data0);
@@ -569,17 +563,17 @@ static Bool lorieRedraw(__unused ClientPtr pClient, __unused void *closure) {
             DamageEmpty(pvfb->damage);
         if (redrawn)
             lorieRequestRender();
-    } else if (pvfb->state->cursor.moved) {
+    } else if (pvfb->cursorMoved) {
         renderer_redraw(pvfb->env, pvfb->root.flip);
         lorieRequestRender();
     }
 
-    pvfb->state->cursor.moved = FALSE;
+    pvfb->cursorMoved = FALSE;
     return TRUE;
 }
 
 static CARD32 lorieFramecounter(unused OsTimerPtr timer, unused CARD32 time, unused void *arg) {
-    // renderer_print_fps(5000);
+    renderer_print_fps(5000);
     return 5000;
 }
 
@@ -636,7 +630,7 @@ lorieRRScreenSetSize(ScreenPtr pScreen, CARD16 width, CARD16 height, unused CARD
 
     RRScreenSizeNotify(pScreen);
     update_desktop_dimensions();
-    pvfb->state->cursor.moved = TRUE;
+    pvfb->cursorMoved = TRUE;
 
     return TRUE;
 }
@@ -718,7 +712,7 @@ lorieScreenInit(ScreenPtr pScreen, unused int argc, unused char **argv) {
     pScreen->blackPixel = 0;
     pScreen->whitePixel = 1;
 
-    pvfb->vblank_interval = 1000000 / pvfb->root.framerate;
+    pvfb->vblank_interval = 10000000 / pvfb->root.framerate;
 
     if (FALSE
           || !dixRegisterPrivateKey(&lorieGCPrivateKey, PRIVATE_GC, sizeof(LorieGCPrivRec))
@@ -761,7 +755,7 @@ CursorForDevice(DeviceIntPtr pDev) {
 
 Bool lorieChangeWindow(unused ClientPtr pClient, void *closure) {
     jobject surface = (jobject) closure;
-    renderer_set_window(pvfb->env, surface);
+    renderer_set_window(pvfb->env, surface, pvfb->root.buffer);
     lorieSetCursor(NULL, NULL, CursorForDevice(GetMaster(lorieMouse, MASTER_POINTER)), -1, -1);
 
     if (pvfb->root.legacyDrawing) {
@@ -798,7 +792,7 @@ void lorieConfigureNotify(int width, int height, int framerate, size_t name_size
 
         log(VERBOSE, "New reported framerate is %d", framerate);
         pvfb->root.framerate = framerate;
-        pvfb->vblank_interval = 1000000 / pvfb->root.framerate;
+        pvfb->vblank_interval = 10000000 / pvfb->root.framerate;
     }
 }
 
@@ -840,12 +834,19 @@ static RRCrtcPtr loriePresentGetCrtc(WindowPtr w) {
 
 static int loriePresentGetUstMsc(RRCrtcPtr crtc, uint64_t *ust, uint64_t *msc) {
     *ust = GetTimeInMicros();
-    *msc = pvfb->current_msc;
+    *msc = (*ust + pvfb->vblank_interval / 2) / pvfb->vblank_interval;
     return Success;
 }
 
 static Bool loriePresentQueueVblank(RRCrtcPtr crtc, uint64_t event_id, uint64_t msc) {
+    uint64_t now = GetTimeInMicros(), ust = msc * pvfb->vblank_interval;
     struct vblank* vblank;
+
+    if (((int64_t) (ust - now)) <= 0) {
+        loriePresentGetUstMsc(crtc, &ust, &msc);
+        present_event_notify(event_id, ust, msc);
+        return Success;
+    }
 
 #pragma clang diagnostic push
 #pragma ide diagnostic ignored "MemoryLeak" // it is not leaked, it is destroyed in lorieRedraw
@@ -856,7 +857,7 @@ static Bool loriePresentQueueVblank(RRCrtcPtr crtc, uint64_t event_id, uint64_t 
     *vblank = (struct vblank) { .id = event_id, .msc = msc };
     xorg_list_add(&vblank->list, &pvfb->vblank_queue);
 
-    return Success;
+    return TRUE;
 #pragma clang diagnostic pop
 }
 
@@ -874,11 +875,10 @@ static void loriePresentAbortVblank(RRCrtcPtr crtc, uint64_t id, uint64_t msc) {
 
 static void loriePerformVblanks(void) {
     struct vblank *vblank, *tmp;
-    uint64_t ust, msc;
-    pvfb->current_msc++;
+    uint64_t now = GetTimeInMicros(), ust, msc;
 
     xorg_list_for_each_entry_safe(vblank, tmp, &pvfb->vblank_queue, list) {
-        if (vblank->msc <= pvfb->current_msc) {
+        if (((int64_t) (vblank->msc * pvfb->vblank_interval  - now)) <= 0) {
             loriePresentGetUstMsc(NULL, &ust, &msc);
             present_event_notify(vblank->id, ust, msc);
             xorg_list_del(&vblank->list);
@@ -1220,12 +1220,10 @@ static __GLXscreen *glXDRIscreenProbe(ScreenPtr pScreen) {
     __glXEnableExtension(screen->glx_enable_bits, "GLX_MESA_copy_sub_buffer");
     __glXEnableExtension(screen->glx_enable_bits, "GLX_EXT_no_config_context");
     __glXEnableExtension(screen->glx_enable_bits, "GLX_ARB_create_context");
-    __glXEnableExtension(screen->glx_enable_bits, "GLX_ARB_create_context_robustness");
     __glXEnableExtension(screen->glx_enable_bits, "GLX_ARB_create_context_no_error");
     __glXEnableExtension(screen->glx_enable_bits, "GLX_ARB_create_context_profile");
     __glXEnableExtension(screen->glx_enable_bits, "GLX_EXT_create_context_es_profile");
     __glXEnableExtension(screen->glx_enable_bits, "GLX_EXT_create_context_es2_profile");
-    __glXEnableExtension(screen->glx_enable_bits, "GLX_ARB_get_proc_address");
     __glXEnableExtension(screen->glx_enable_bits, "GLX_EXT_framebuffer_sRGB");
     __glXEnableExtension(screen->glx_enable_bits, "GLX_ARB_fbconfig_float");
     __glXEnableExtension(screen->glx_enable_bits, "GLX_EXT_fbconfig_packed_float");
