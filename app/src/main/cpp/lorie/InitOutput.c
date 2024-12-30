@@ -138,9 +138,9 @@ typedef struct {
 
 ScreenPtr pScreenPtr;
 static lorieScreenInfo lorieScreen = {
-        .root.width = 1280,
+        .root.width = 1050,
         .root.height = 1024,
-        .root.framerate = 30,
+        .root.framerate = 60,
         .root.name = "screen",
         .dri3 = TRUE,
         .vblank_queue = { &lorieScreen.vblank_queue, &lorieScreen.vblank_queue },
@@ -450,9 +450,9 @@ static void lorieUpdateBuffer(void) {
     if (pvfb->root.legacyDrawing) {
         PixmapPtr pixmap = (PixmapPtr) pScreenPtr->devPrivate;
         DrawablePtr draw = &pixmap->drawable;
-        data0 = malloc(pScreenPtr->width * pScreenPtr->height * 4);
         data1 = (draw->width && draw->height) ? pixmap->devPrivate.ptr : NULL;
         if (data1)
+            data0 = malloc(pScreenPtr->width * pScreenPtr->height * 4);
             pixman_blt(data1, data0, draw->width, pScreenPtr->width, 32, 32, 0, 0, 0, 0,
                        min(draw->width, pScreenPtr->width), min(draw->height, pScreenPtr->height));
         pScreenPtr->ModifyPixmapHeader(pScreenPtr->devPrivate, pScreenPtr->width, pScreenPtr->height, 32, 32, pScreenPtr->width * 4, data0);
@@ -579,8 +579,8 @@ static Bool lorieRedraw(__unused ClientPtr pClient, __unused void *closure) {
 }
 
 static CARD32 lorieFramecounter(unused OsTimerPtr timer, unused CARD32 time, unused void *arg) {
-    renderer_print_fps(5000);
-    return 5000;
+    // renderer_print_fps(5000);
+    return 0;
 }
 
 static Bool lorieCreateScreenResources(ScreenPtr pScreen) {
@@ -775,7 +775,7 @@ Bool lorieChangeWindow(unused ClientPtr pClient, void *closure) {
 void lorieConfigureNotify(int width, int height, int framerate, size_t name_size, char* name) {
     ScreenPtr pScreen = pScreenPtr;
     RROutputPtr output = RRFirstOutput(pScreen);
-    framerate = framerate ? framerate : 30;
+    framerate = framerate ? framerate : 60;
 
     if (output && name) {
         // We should save this name in pvfb to make sure the name will be restored in the case if the server is being reset.
@@ -1217,13 +1217,17 @@ static __GLXscreen *glXDRIscreenProbe(ScreenPtr pScreen) {
 
     __glXInitExtensionEnableBits(screen->glx_enable_bits);
     /* There is no real GLX support, but anyways swrast reports it. */
+    __glXEnableExtension(screen->glx_enable_bits, "GLX_MESA_swap_control");
+    __glXEnableExtension(screen->glx_enable_bits, "GLX_ARB_get_proc_address");
     __glXEnableExtension(screen->glx_enable_bits, "GLX_MESA_copy_sub_buffer");
     __glXEnableExtension(screen->glx_enable_bits, "GLX_EXT_no_config_context");
     __glXEnableExtension(screen->glx_enable_bits, "GLX_ARB_create_context");
+    __glXEnableExtension(screen->glx_enable_bits, "GLX_ARB_create_context_robustness");
     __glXEnableExtension(screen->glx_enable_bits, "GLX_ARB_create_context_no_error");
     __glXEnableExtension(screen->glx_enable_bits, "GLX_ARB_create_context_profile");
     __glXEnableExtension(screen->glx_enable_bits, "GLX_EXT_create_context_es_profile");
     __glXEnableExtension(screen->glx_enable_bits, "GLX_EXT_create_context_es2_profile");
+    __glXEnableExtension(screen->glx_enable_bits, "GLX_ARB_get_proc_address");
     __glXEnableExtension(screen->glx_enable_bits, "GLX_EXT_framebuffer_sRGB");
     __glXEnableExtension(screen->glx_enable_bits, "GLX_ARB_fbconfig_float");
     __glXEnableExtension(screen->glx_enable_bits, "GLX_EXT_fbconfig_packed_float");
