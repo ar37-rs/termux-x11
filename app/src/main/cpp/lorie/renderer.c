@@ -542,15 +542,15 @@ int renderer_redraw(JNIEnv* env, uint8_t flip) {
         }
     }
 
-    renderedFrames++;
+//    renderedFrames++;
     return TRUE;
 }
 
 void renderer_print_fps(float millis) {
-    if (renderedFrames)
-        log("%d frames in %.1f seconds = %.1f FPS",
-                                renderedFrames, millis / 1000, (float) renderedFrames *  1000 / millis);
-    renderedFrames = 0;
+//   if (renderedFrames)
+//        log("%d frames in %.1f seconds = %.1f FPS",
+//                                renderedFrames, millis / 1000, (float) renderedFrames *  1000 / millis);
+//    renderedFrames = 0;
 }
 
 static GLuint load_shader(GLenum shaderType, const char* pSource) {
