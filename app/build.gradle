@@ -45,6 +45,17 @@ android {
             optimizeCode true
         }
     }
+    
+    buildTypes.release {
+        signingConfig signingConfigs.debug
+        postprocessing {
+            removeUnusedCode true
+            removeUnusedResources true
+            obfuscate false
+            optimizeCode true
+        }
+    }
+    
 }
 
 dependencies {

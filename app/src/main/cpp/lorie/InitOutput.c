@@ -139,7 +139,7 @@ typedef struct {
 ScreenPtr pScreenPtr;
 static lorieScreenInfo lorieScreen = {
         .root.width = 1050,
-        .root.height = 1024,
+        .root.height = 1024
         .root.framerate = 60,
         .root.name = "screen",
         .dri3 = TRUE,
