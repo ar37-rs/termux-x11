@@ -580,7 +580,7 @@ static Bool lorieRedraw(__unused ClientPtr pClient, __unused void *closure) {
 
 static CARD32 lorieFramecounter(unused OsTimerPtr timer, unused CARD32 time, unused void *arg) {
     // renderer_print_fps(5000);
-    return 0;
+    return 5000;
 }
 
 static Bool lorieCreateScreenResources(ScreenPtr pScreen) {
@@ -1217,8 +1217,6 @@ static __GLXscreen *glXDRIscreenProbe(ScreenPtr pScreen) {
 
     __glXInitExtensionEnableBits(screen->glx_enable_bits);
     /* There is no real GLX support, but anyways swrast reports it. */
-    __glXEnableExtension(screen->glx_enable_bits, "GLX_MESA_swap_control");
-    __glXEnableExtension(screen->glx_enable_bits, "GLX_ARB_get_proc_address");
     __glXEnableExtension(screen->glx_enable_bits, "GLX_MESA_copy_sub_buffer");
     __glXEnableExtension(screen->glx_enable_bits, "GLX_EXT_no_config_context");
     __glXEnableExtension(screen->glx_enable_bits, "GLX_ARB_create_context");
