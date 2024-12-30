@@ -82,6 +82,7 @@ static const char* eglErrorLabel(int code) {
 #undef E
         default: return "EGL_UNKNOWN_ERROR";
     }
+
 }
 
 static void checkGlError(int line) {
@@ -108,6 +109,7 @@ static void checkGlError(int line) {
 }
 
 #define checkGlError() checkGlError(__LINE__)
+
 
 static const char vertex_shader[] =
     "attribute vec4 position;\n"
@@ -142,18 +144,13 @@ static int renderedFrames = 0;
 static jmethodID Surface_release = NULL;
 static jmethodID Surface_destroy = NULL;
 
-static volatile bool contextAvailable = false;
-static volatile bool bufferChanged = false;
-static volatile AHardwareBuffer* pendingBuffer = NULL;
-
 static struct {
     GLuint id;
     float width, height;
 } display;
-struct lorie_shared_server_state* state = NULL;
 static struct {
     GLuint id;
-    bool cursorChanged;
+    float x, y, width, height, xhot, yhot;
 } cursor;
 
 GLuint g_texture_program = 0, gv_pos = 0, gv_coords = 0;
@@ -327,22 +324,64 @@ int renderer_init(JNIEnv* env, int* legacy_drawing, uint8_t* flip) {
     return 1;
 }
 
-__unused void renderer_set_shared_state(struct lorie_shared_server_state* new_state) {
-    state = new_state;
+static void renderer_unset_buffer(void) {
+    if (eglGetCurrentContext() == EGL_NO_CONTEXT) {
+        loge("There is no current context, `renderer_set_buffer` call is cancelled");
+        return;
+    }
+
+    log("renderer_set_buffer0");
+    if (image)
+        eglDestroyImageKHR(egl_display, image);
+    if (buffer)
+        AHardwareBuffer_release(buffer);
+
+    buffer = NULL;
 }
 
 void renderer_set_buffer(JNIEnv* env, AHardwareBuffer* buf) {
-    if (buf == pendingBuffer)
+    const EGLint imageAttributes[] = {EGL_IMAGE_PRESERVED_KHR, EGL_TRUE, EGL_NONE};
+    AHardwareBuffer_Desc desc = {0};
+    uint8_t flip = 0;
+
+    if (eglGetCurrentContext() == EGL_NO_CONTEXT) {
+        loge("There is no current context, `renderer_set_buffer` call is cancelled");
         return;
+    }
 
-    if (pendingBuffer)
-        AHardwareBuffer_release(pendingBuffer);
+    renderer_unset_buffer();
 
-    pendingBuffer = buf;
-    bufferChanged = true;
+    buffer = buf;
 
-    if (pendingBuffer)
-        AHardwareBuffer_acquire(pendingBuffer);
+    bindLinearTexture(display.id);
+    if (buffer) {
+        AHardwareBuffer_acquire(buffer);
+        AHardwareBuffer_describe(buffer, &desc);
+
+        display.width = (float) desc.width;
+        display.height = (float) desc.height;
+
+        image = eglCreateImageKHR(egl_display, EGL_NO_CONTEXT, EGL_NATIVE_BUFFER_ANDROID, eglGetNativeClientBufferANDROID(buffer), imageAttributes);
+        if (image != NULL) {
+            glEGLImageTargetTexture2DOES(GL_TEXTURE_2D, image);
+            flip = desc.format != AHARDWAREBUFFER_FORMAT_B8G8R8A8_UNORM;
+        } else {
+            display.width = 1;
+            display.height = 1;
+            uint32_t data = {0};
+            glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, 1, 1, 0, GL_RGBA, GL_UNSIGNED_BYTE, &data);
+        }
+    } else {
+        display.width = 1;
+        display.height = 1;
+        uint32_t data = {0};
+        loge("There is no AHardwareBuffer, nothing to be bound.");
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, 1, 1, 0, GL_RGBA, GL_UNSIGNED_BYTE, &data);
+    }
+
+    renderer_redraw(env, flip);
+
+    log("renderer_set_buffer %p %d %d", buffer, desc.width, desc.height);
 }
 
 static inline __always_inline void release_win_and_surface(JNIEnv *env, jobject* jsfc, ANativeWindow** anw, EGLSurface *esfc) {
@@ -367,8 +406,7 @@ static inline __always_inline void release_win_and_surface(JNIEnv *env, jobject*
     }
 }
 
-void renderer_set_window(JNIEnv* env, jobject new_surface) {
-    uint32_t emptyData = {0};
+void renderer_set_window(JNIEnv* env, jobject new_surface, AHardwareBuffer* new_buffer) {
     ANativeWindow* window;
     if (new_surface && surface && new_surface != surface && (*env)->IsSameObject(env, new_surface, surface)) {
         (*env)->DeleteGlobalRef(env, new_surface);
@@ -396,22 +434,15 @@ void renderer_set_window(JNIEnv* env, jobject new_surface) {
     win = window;
     surface = new_surface;
 
-    if (!win) {
-        eglMakeCurrent(egl_display, EGL_NO_SURFACE, EGL_NO_SURFACE, EGL_NO_CONTEXT);
-        contextAvailable = false;
+    if (!win)
         return;
-    }
 
     sfc = eglCreateWindowSurface(egl_display, cfg, win, NULL);
     if (sfc == EGL_NO_SURFACE)
         return vprintEglError("eglCreateWindowSurface failed", __LINE__);
 
-    if (eglMakeCurrent(egl_display, sfc, sfc, ctx) != EGL_TRUE) {
-        contextAvailable = false;
+    if (eglMakeCurrent(egl_display, sfc, sfc, ctx) != EGL_TRUE)
         return vprintEglError("eglMakeCurrent failed", __LINE__);
-    }
-
-    contextAvailable = true;
 
     if (!g_texture_program) {
         g_texture_program = create_program(vertex_shader, fragment_shader);
@@ -439,16 +470,15 @@ void renderer_set_window(JNIEnv* env, jobject new_surface) {
 
     eglSwapInterval(egl_display, 0);
 
-    glViewport(0, 0, ANativeWindow_getWidth(win), ANativeWindow_getHeight(win));
+    if (win && ctx && ANativeWindow_getWidth(win) > 0 && ANativeWindow_getHeight(win) > 0)
+        glViewport(0, 0, ANativeWindow_getWidth(win), ANativeWindow_getHeight(win));
+
     log("Xlorie: new surface applied: %p\n", sfc);
 
-    bindLinearTexture(display.id);
-    if (image)
-        glEGLImageTargetTexture2DOES(GL_TEXTURE_2D, image);
-    else {
-        display.width = display.height = 1;
-        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, 1, 1, 0, GL_RGBA, GL_UNSIGNED_BYTE, &emptyData);
-    }
+    if (!new_buffer) {
+        glClearColor(0.f, 0.f, 0.f, 0.0f);
+        glClear(GL_COLOR_BUFFER_BIT);
+    } else renderer_set_buffer(env, new_buffer);
 }
 
 void renderer_update_root(int w, int h, void* data, uint8_t flip) {
@@ -465,68 +495,37 @@ void renderer_update_root(int w, int h, void* data, uint8_t flip) {
     display.height = (float) h;
 }
 
+void renderer_update_cursor(int w, int h, int xhot, int yhot, void* data) {
+    log("Xlorie: updating cursor\n");
+    cursor.width = (float) w;
+    cursor.height = (float) h;
+    cursor.xhot = (float) xhot;
+    cursor.yhot = (float) yhot;
+
+    if (eglGetCurrentContext() == EGL_NO_CONTEXT || !cursor.width || !cursor.height)
+        return;
+
+    bindLinearTexture(cursor.id);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, w, h, 0, GL_RGBA, GL_UNSIGNED_BYTE, data);
+}
+
+void renderer_set_cursor_coordinates(int x, int y) {
+    cursor.x = (float) x;
+    cursor.y = (float) y;
+}
+
 static void draw(GLuint id, float x0, float y0, float x1, float y1, uint8_t flip);
 static void draw_cursor(void);
 
 int renderer_should_redraw(void) {
-    return contextAvailable || bufferChanged || (state && state->cursor.updated);
-}
-
-static void renderer_renew_image(void) {
-    const EGLint imageAttributes[] = {EGL_IMAGE_PRESERVED_KHR, EGL_TRUE, EGL_NONE};
-    AHardwareBuffer_Desc desc = {0};
-    uint32_t emptyData = {0};
-
-    if (image)
-        eglDestroyImageKHR(egl_display, image);
-    if (buffer)
-        AHardwareBuffer_release(buffer);
-
-    buffer = pendingBuffer;
-    pendingBuffer = NULL;
-    bufferChanged = false;
-    image = NULL;
-
-    if (buffer) {
-        AHardwareBuffer_describe(buffer, &desc);
-        display.width = (float) desc.width;
-        display.height = (float) desc.height;
-
-        image = eglCreateImageKHR(egl_display, EGL_NO_CONTEXT, EGL_NATIVE_BUFFER_ANDROID, eglGetNativeClientBufferANDROID(buffer), imageAttributes);
-    }
-
-    if (contextAvailable) {
-        bindLinearTexture(display.id);
-        if (image)
-            glEGLImageTargetTexture2DOES(GL_TEXTURE_2D, image);
-        else {
-            loge("There is no %s, nothing to be bound.", !buffer ? "AHardwareBuffer" : "EGLImage");
-            display.width = display.height = 1;
-            glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, 1, 1, 0, GL_RGBA, GL_UNSIGNED_BYTE, &emptyData);
-        }
-    }
-
-    log("renderer: buffer changed %p %d %d", buffer, desc.width, desc.height);
+    return sfc != EGL_NO_SURFACE && eglGetCurrentContext() != EGL_NO_CONTEXT;
 }
 
 int renderer_redraw(JNIEnv* env, uint8_t flip) {
     int err = EGL_SUCCESS;
 
-    if (bufferChanged)
-        renderer_renew_image();
-
-    if (!contextAvailable)
+    if (!sfc || eglGetCurrentContext() == EGL_NO_CONTEXT)
         return FALSE;
-
-    if (state && state->cursor.updated) {
-        uint32_t data = 0;
-        log("Xlorie: updating cursor\n");
-        pthread_mutex_lock(&state->cursor.lock);
-        state->cursor.updated = false;
-        bindLinearTexture(cursor.id);
-        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, (GLsizei) state->cursor.width, (GLsizei) state->cursor.height, 0, GL_RGBA, GL_UNSIGNED_BYTE, state->cursor.bits);
-        pthread_mutex_unlock(&state->cursor.lock);
-    }
 
     draw(display.id,  -1.f, -1.f, 1.f, 1.f, flip);
     draw_cursor();
@@ -537,17 +536,19 @@ int renderer_redraw(JNIEnv* env, uint8_t flip) {
             log("We've got %s so window is to be destroyed. "
                 "Native window disconnected/abandoned, probably activity is destroyed or in background",
                 eglErrorLabel(err));
-            renderer_set_window(env, NULL);
+            renderer_set_window(env, NULL, NULL);
             return FALSE;
         }
     }
 
-
+    // renderedFrames++;
     return TRUE;
 }
 
 void renderer_print_fps(float millis) {
-
+    // if (renderedFrames)
+    //   log("%d frames in %.1f seconds = %.1f FPS", renderedFrames, millis / 1000, (float) renderedFrames *  1000 / millis);
+    // renderedFrames = 0;
 }
 
 static GLuint load_shader(GLenum shaderType, const char* pSource) {
@@ -605,7 +606,7 @@ static GLuint create_program(const char* p_vertex_source, const char* p_fragment
 }
 
 static void draw(GLuint id, float x0, float y0, float x1, float y1, uint8_t flip) {
-    float coords[16] = {
+    float coords[20] = {
         x0, -y0, 0.f, 0.f,
         x1, -y0, 1.f, 0.f,
         x0, -y1, 0.f, 1.f,
@@ -628,20 +629,13 @@ static void draw(GLuint id, float x0, float y0, float x1, float y1, uint8_t flip
 __unused static void draw_cursor(void) {
     float x, y, w, h;
 
-    if (!state || !state->cursor.width || !state->cursor.height)
+    if (!cursor.width || !cursor.height)
         return;
 
-    if (state->cursor.updated) {
-        state->cursor.updated = false;
-        log("Xlorie: updating cursor\n");
-        bindLinearTexture(cursor.id);
-        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, (GLsizei) state->cursor.width, (GLsizei) state->cursor.height, 0, GL_RGBA, GL_UNSIGNED_BYTE, state->cursor.bits);
-    }
-
-    x = 2.f * ((float) state->cursor.x - (float) state->cursor.xhot) / display.width - 1.f;
-    y = 2.f * ((float) state->cursor.y - (float) state->cursor.yhot) / display.height - 1.f;
-    w = 2.f * (float) state->cursor.width / display.width;
-    h = 2.f * (float) state->cursor.height / display.height;
+    x = 2.f * (cursor.x - cursor.xhot) / display.width - 1.f;
+    y = 2.f * (cursor.y - cursor.yhot) / display.height - 1.f;
+    w = 2.f * cursor.width / display.width;
+    h = 2.f * cursor.height / display.height;
     glEnable(GL_BLEND);
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
     draw(cursor.id, x, y, x + w, y + h, false);

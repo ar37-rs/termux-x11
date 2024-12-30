@@ -96,12 +96,10 @@ typedef union {
 
 struct lorie_shared_server_state {
     pthread_mutex_t lock; // initialized at X server side.
-    pthread_cond_t cond; // initialized at X server side.
     struct {
-        pthread_mutex_t lock; // initialized at X server side.
         uint32_t x, y, xhot, yhot, width, height;
         uint32_t bits[512*512]; // 1 megabyte should be enough for any cursor up to 512x512
-        uint8_t updated, moved;
+        uint8_t updated;
     } cursor;
 };
 
