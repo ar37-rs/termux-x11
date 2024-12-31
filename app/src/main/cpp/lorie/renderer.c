@@ -235,10 +235,10 @@ int renderer_init(JNIEnv* env, int* legacy_drawing, uint8_t* flip) {
         AHardwareBuffer *new = NULL;
         int status;
         AHardwareBuffer_Desc d0 = {
-                .width = 64,
-                .height = 64,
+                .width = 1024,
+                .height = 1050,
                 .layers = 1,
-                .usage = AHARDWAREBUFFER_USAGE_GPU_SAMPLED_IMAGE | AHARDWAREBUFFER_USAGE_CPU_WRITE_OFTEN | AHARDWAREBUFFER_USAGE_CPU_READ_OFTEN,
+                .usage = AHARDWAREBUFFER_USAGE_CPU_WRITE_OFTEN | AHARDWAREBUFFER_USAGE_CPU_READ_OFTEN,
                 .format = AHARDWAREBUFFER_FORMAT_B8G8R8A8_UNORM
         };
 
@@ -565,15 +565,15 @@ int renderer_redraw(JNIEnv* env, uint8_t flip) {
         }
     }
 
-    renderedFrames++;
+    // renderedFrames++;
     return TRUE;
 }
 
 void renderer_print_fps(float millis) {
-    if (renderedFrames)
-        log("%d frames in %.1f seconds = %.1f FPS",
-                                renderedFrames, millis / 1000, (float) renderedFrames *  1000 / millis);
-    renderedFrames = 0;
+ //   if (renderedFrames)
+ //       log("%d frames in %.1f seconds = %.1f FPS",
+ //                               renderedFrames, millis / 1000, (float) renderedFrames *  1000 / millis);
+ //   renderedFrames = 0;
 }
 
 static GLuint load_shader(GLenum shaderType, const char* pSource) {
