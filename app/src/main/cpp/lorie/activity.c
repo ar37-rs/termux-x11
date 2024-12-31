@@ -174,22 +174,22 @@ static void connect_(__unused JNIEnv* env, __unused jobject cls, jint fd) {
 }
 
 static void startLogcat(JNIEnv *env, __unused jobject cls, jint fd) {
-    log(DEBUG, "Starting logcat with output to given fd");
+    // log(DEBUG, "Starting logcat with output to given fd");
 
-    switch(fork()) {
-        case -1:
-            log(ERROR, "fork: %s", strerror(errno));
-            return;
-        case 0:
-            dup2(fd, 1);
-            dup2(fd, 2);
-            prctl(PR_SET_PDEATHSIG, SIGTERM);
-            char buf[64] = {0};
-            sprintf(buf, "--pid=%d", getppid());
-            execl("/system/bin/logcat", "logcat", buf, NULL);
-            log(ERROR, "exec logcat: %s", strerror(errno));
-            (*env)->FatalError(env, "Exiting");
-    }
+    // switch(fork()) {
+    //    case -1:
+    //        log(ERROR, "fork: %s", strerror(errno));
+    //        return;
+    //    case 0:
+    //        dup2(fd, 1);
+    //        dup2(fd, 2);
+    //        prctl(PR_SET_PDEATHSIG, SIGTERM);
+    //        char buf[64] = {0};
+    //        sprintf(buf, "--pid=%d", getppid());
+    //        execl("/system/bin/logcat", "logcat", buf, NULL);
+    //        log(ERROR, "exec logcat: %s", strerror(errno));
+    //        (*env)->FatalError(env, "Exiting");
+    // }
 }
 
 static void setClipboardSyncEnabled(__unused JNIEnv* env, __unused jobject cls, jboolean enable, __unused jboolean ignored) {
