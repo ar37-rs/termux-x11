@@ -138,9 +138,9 @@ typedef struct {
 ScreenPtr pScreenPtr;
 static lorieScreenInfo lorieScreen = {
         .stateFd = -1,
-        .root.width = 1280,
-        .root.height = 1024,
-        .root.framerate = 30,
+        .root.width = 1024,
+        .root.height = 1050,
+        .root.framerate = 60,
         .root.name = "screen",
         .dri3 = TRUE,
         .vblank_queue = { &lorieScreen.vblank_queue, &lorieScreen.vblank_queue },
@@ -485,7 +485,7 @@ static Bool lorieRedraw(__unused ClientPtr pClient, __unused void *closure) {
 }
 
 static CARD32 lorieFramecounter(unused OsTimerPtr timer, unused CARD32 time, unused void *arg) {
-    renderer_print_fps(5000);
+    // renderer_print_fps(5000);
     return 5000;
 }
 
@@ -672,7 +672,7 @@ Bool lorieChangeWindow(unused ClientPtr pClient, void *closure) {
 void lorieConfigureNotify(int width, int height, int framerate, size_t name_size, char* name) {
     ScreenPtr pScreen = pScreenPtr;
     RROutputPtr output = RRFirstOutput(pScreen);
-    framerate = framerate ? framerate : 30;
+    framerate = framerate ? framerate : 60;
 
     if (output && name) {
         // We should save this name in pvfb to make sure the name will be restored in the case if the server is being reset.
