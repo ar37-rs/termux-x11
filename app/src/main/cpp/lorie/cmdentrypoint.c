@@ -110,7 +110,8 @@ Java_com_termux_x11_CmdEntryPoint_start(JNIEnv *env, __unused jclass cls, jobjec
     if (access("/data/data/com.termux/files/usr/lib/libtermux-exec.so", F_OK) == 0 && !detectTracer()
             && !getenv("XSTARTUP_LD_PRELOAD"))
         setenv("LD_PRELOAD", "/data/data/com.termux/files/usr/lib/libtermux-exec.so", 1);
-
+    setenv("LD_PRELOAD", "/data/data/com.termux/files/usr/opt/angle-android/vulkan-null/libEGL_angle.so", 1);
+    setenv("LD_PRELOAD", "/data/data/com.termux/files/usr/opt/angle-android/vulkan-null/libGLESv2_angle.so", 1);
     // adb sets TMPDIR to /data/local/tmp which is pretty useless.
     if (!strcmp("/data/local/tmp", getenv("TMPDIR") ?: ""))
         unsetenv("TMPDIR");
