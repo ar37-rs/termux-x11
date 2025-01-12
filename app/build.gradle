@@ -25,6 +25,14 @@ android {
         keyPassword 'xrj45yWGLbsO7W0v'
     }
 
+    splits.abi {
+        enable true
+        reset()
+
+        include "arm64-v8a"
+        universalApk false
+    }
+
     compileOptions.sourceCompatibility JavaVersion.VERSION_1_9
     compileOptions.targetCompatibility JavaVersion.VERSION_1_9
     externalNativeBuild.cmake.path "src/main/cpp/CMakeLists.txt"
