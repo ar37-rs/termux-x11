@@ -439,7 +439,7 @@ static CARD32 lorieFramecounter(unused OsTimerPtr timer, unused CARD32 time, unu
     // if (pvfb->state->renderedFrames)
     //    log(INFO, "%d frames in 5.0 seconds = %.1f FPS",
     //        pvfb->state->renderedFrames, ((float) pvfb->state->renderedFrames) / 5);
-    pvfb->state->renderedFrames = 0;
+    // pvfb->state->renderedFrames = 0;
     return 5000;
 }
 
