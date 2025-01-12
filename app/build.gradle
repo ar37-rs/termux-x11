@@ -10,8 +10,7 @@ android {
         targetSdkVersion 34
         versionCode 15
         ndk {
-            abiFilters "x86", "armeabi-v7a", "armeabi", "x86_64"
-
+            abiFilters "x86", "armeabi-v7a", "x86_64"
         }
         def commit= 'git rev-parse --verify --short HEAD'.execute().text.trim()
         def version = "1.03.01"
@@ -24,13 +23,6 @@ android {
         keyAlias 'alias'
         storePassword 'xrj45yWGLbsO7W0v'
         keyPassword 'xrj45yWGLbsO7W0v'
-    }
-
-    splits.abi {
-        enable false
-        reset()
-        include "arm64-v8a"
-        universalApk false
     }
 
     compileOptions.sourceCompatibility JavaVersion.VERSION_1_9
