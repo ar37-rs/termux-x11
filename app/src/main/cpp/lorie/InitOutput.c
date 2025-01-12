@@ -112,9 +112,9 @@ typedef struct {
 ScreenPtr pScreenPtr;
 static lorieScreenInfo lorieScreen = {
         .stateFd = -1,
-        .root.width = 1280,
-        .root.height = 1024,
-        .root.framerate = 30,
+        .root.width = 1024,
+        .root.height = 1050,
+        .root.framerate = 60,
         .root.name = "screen",
         .dri3 = TRUE,
         .vblank_queue = { &lorieScreen.vblank_queue, &lorieScreen.vblank_queue },
@@ -451,7 +451,7 @@ static Bool lorieCreateScreenResources(ScreenPtr pScreen) {
         FatalError("Couldn't setup damage\n");
 
     DamageRegister(&(*pScreen->GetScreenPixmap)(pScreen)->drawable, pvfb->damage);
-    pvfb->fpsTimer = TimerSet(NULL, 0, 5000, lorieFramecounter, pScreen);
+    // pvfb->fpsTimer = TimerSet(NULL, 0, 5000, lorieFramecounter, pScreen);
 
 #if RENDERER_IN_ACTIVITY
     lorieSendRootWindowBuffer(((LoriePixmapPriv*) exaGetPixmapDriverPrivate(pScreen->devPrivate))->buffer);
