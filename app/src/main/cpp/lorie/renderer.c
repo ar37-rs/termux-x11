@@ -241,7 +241,7 @@ void renderer_test_capabilities(int* legacy_drawing, uint8_t* flip) {
             .height = 64,
             .layers = 1,
             .usage = AHARDWAREBUFFER_USAGE_GPU_SAMPLED_IMAGE | AHARDWAREBUFFER_USAGE_CPU_WRITE_OFTEN | AHARDWAREBUFFER_USAGE_CPU_READ_OFTEN,
-            .format = AHARDWAREBUFFER_FORMAT_R8G8B8A8_UNORM
+            .format = AHARDWAREBUFFER_FORMAT_B8G8R8A8_UNORM
     };
 
     if (egl_display == EGL_NO_DISPLAY) {
