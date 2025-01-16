@@ -510,7 +510,7 @@ void renderer_refresh_context(JNIEnv* env) {
         return vprintEglError("eglMakeCurrent failed", __LINE__);
     }
 
-    eglSwapInterval(egl_display, 1);
+    eglSwapInterval(egl_display, 0);
 
     if (state)
         // We should redraw image at least once right after surface change
@@ -654,8 +654,8 @@ void renderer_redraw_locked(JNIEnv* env) {
 #else
             renderer_set_window(env, NULL);
 #endif
-            lorie_mutex_unlock(&state->lock, &state->lockingPid);
         }
+        lorie_mutex_unlock(&state->lock, &state->lockingPid);
     }
 
     // Perform a little drawing operation to make sure the next buffer is ready on the next invocation of drawing
