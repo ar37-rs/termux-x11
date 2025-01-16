@@ -796,7 +796,7 @@ void *lorieCreatePixmap(__unused ScreenPtr pScreen, int width, int height, __unu
         return priv;
 
     uint8_t type = pvfb->root.legacyDrawing ? LORIEBUFFER_REGULAR : LORIEBUFFER_AHARDWAREBUFFER;
-    uint8_t format = pvfb->root.flip ? AHARDWAREBUFFER_FORMAT_R8G8B8X8_UNORM : AHARDWAREBUFFER_FORMAT_B8G8R8A8_UNORM;
+    uint8_t format = AHARDWAREBUFFER_FORMAT_R8G8B8A8_UNORM;
     priv->buffer = LorieBuffer_allocate(width, height, format, type);
     LorieBuffer_Desc d = {0};
     LorieBuffer_describe(priv->buffer, &d);
@@ -835,7 +835,7 @@ Bool loriePrepareAccess(PixmapPtr pPix, int index) {
         lorie_mutex_lock(&pvfb->state->lock, &pvfb->state->lockingPid);
 
     if (priv->ahb) {
-        if (AHardwareBuffer_lock(priv->ahb, AHARDWAREBUFFER_USAGE_CPU_READ_OFTEN | AHARDWAREBUFFER_USAGE_CPU_WRITE_OFTEN, -1, NULL, &pPix->devPrivate.ptr))
+        if (AHardwareBuffer_lock(priv->ahb, AHARDWAREBUFFER_USAGE_CPU_READ_RARELY | AHARDWAREBUFFER_USAGE_CPU_WRITE_RARELY, -1, NULL, &pPix->devPrivate.ptr))
             return FALSE;
     } else
         pPix->devPrivate.ptr = priv->locked ?: priv->mem ?: priv + 1;
