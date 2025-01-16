@@ -694,9 +694,9 @@ __noreturn static void* renderer_thread(void* closure) {
         if (stateChanged) {
             if (state && pendingState != state)
                 munmap(state, sizeof(*state));
-
             state = pendingState;
             pendingState = NULL;
+            stateChanged = false;
         }
 
         if (windowChanged)
@@ -706,12 +706,8 @@ __noreturn static void* renderer_thread(void* closure) {
             renderer_renew_image();
         pthread_mutex_unlock(&stateLock);
 
-        if ((bufferChanged || windowChanged || stateChanged) && (!state->waitForNextFrame)) {
+        if (state && state->surfaceAvailable && !state->waitForNextFrame && (bufferChanged || windowChanged || state->drawRequested || state->cursor.moved || state->cursor.updated))
             renderer_redraw_locked(env);
-            if (stateChanged) {
-                stateChanged = false;
-            }
-        }
     }
 }
 
