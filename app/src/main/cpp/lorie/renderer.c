@@ -708,7 +708,6 @@ __noreturn static void* renderer_thread(void* closure) {
 
             state = pendingState;
             pendingState = NULL;
-            stateChanged = false;
         }
 
         if (windowChanged)
@@ -718,8 +717,12 @@ __noreturn static void* renderer_thread(void* closure) {
             renderer_renew_image();
         pthread_mutex_unlock(&stateLock);
 
-        if (state && state->surfaceAvailable && !state->waitForNextFrame && (state->drawRequested || state->cursor.moved || state->cursor.updated))
+        if (state && state->surfaceAvailable && !state->waitForNextFrame && (state->drawRequested || bufferChanged || windowChanged || stateChanged || state->cursor.moved || state->cursor.updated)) {
             renderer_redraw_locked(env);
+            if (stateChanged) {
+                stateChanged = false;
+            }
+        }
     }
 }
 
