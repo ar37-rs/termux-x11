@@ -520,17 +520,8 @@ void renderer_refresh_context(JNIEnv* env) {
             return;
         }
 
-        g_texture_program_bgra = create_program(vertex_shader, fragment_shader_bgra);
-        if (!g_texture_program_bgra) {
-            log("Xlorie: GLESv2: Unable to create bgra shader program.\n");
-            return;
-        }
-
         gv_pos = (GLuint) glGetAttribLocation(g_texture_program, "position");
         gv_coords = (GLuint) glGetAttribLocation(g_texture_program, "texCoords");
-
-        // gv_pos_bgra = (GLuint) glGetAttribLocation(g_texture_program_bgra, "position");
-        // gv_coords_bgra = (GLuint) glGetAttribLocation(g_texture_program_bgra, "texCoords");
 
         glActiveTexture(GL_TEXTURE0);
         glGenTextures(1, &display.id);
@@ -693,10 +684,11 @@ __noreturn static void* renderer_thread(void* closure) {
     // Mutex is needed only for pthread_cond_wait, it is needed only to make thread sleep when it is idle.
     // We check for all event that may change in between so we should not miss any events.
     pthread_mutex_lock(&m);
-
+    int refresh = 0;
     while (true) {
         while (renderer_should_wait())
             pthread_cond_wait(state ? &state->cond : &stateCond, &m);
+            
 
         pthread_mutex_lock(&stateLock);
         if (stateChanged) {
@@ -715,7 +707,7 @@ __noreturn static void* renderer_thread(void* closure) {
             renderer_renew_image();
         pthread_mutex_unlock(&stateLock);
 
-        if (state && state->surfaceAvailable && !state->waitForNextFrame && (state->drawRequested || state->cursor.moved || state->cursor.updated))
+        if (bufferChanged || windowChanged || stateChanged && !state->waitForNextFrame)
             renderer_redraw_locked(env);
     }
 }
