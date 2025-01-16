@@ -106,7 +106,6 @@ static const char vertex_shader[] =
     "}\n"
 
 static const char fragment_shader[] = FRAGMENT_SHADER();
-static const char fragment_shader_bgra[] = FRAGMENT_SHADER(".bgra");
 
 static EGLDisplay egl_display = EGL_NO_DISPLAY;
 static EGLContext ctx = EGL_NO_CONTEXT;
@@ -147,8 +146,6 @@ static struct {
 } cursor;
 
 GLuint g_texture_program = 0, gv_pos = 0, gv_coords = 0;
-GLuint g_texture_program_bgra = 0, gv_pos_bgra = 0, gv_coords_bgra = 0;
-
 static void* renderer_thread(void* closure);
 
 static inline __always_inline void bindLinearTexture(GLuint id) {
@@ -239,9 +236,9 @@ void renderer_test_capabilities(int* legacy_drawing, uint8_t* flip) {
     AHardwareBuffer_Desc d0 = {
             .width = 64,
             .height = 64,
-            .layers = 1,
-            .usage = AHARDWAREBUFFER_USAGE_GPU_SAMPLED_IMAGE | AHARDWAREBUFFER_USAGE_CPU_WRITE_OFTEN | AHARDWAREBUFFER_USAGE_CPU_READ_OFTEN,
-            .format = AHARDWAREBUFFER_FORMAT_B8G8R8A8_UNORM
+            .layers = 1 
+            .usage = AHARDWAREBUFFER_USAGE_GPU_SAMPLED_IMAGE | AHARDWAREBUFFER_USAGE_CPU_WRITE_RARELY | AHARDWAREBUFFER_USAGE_CPU_READ_RARELY,
+            .format = AHARDWAREBUFFER_FORMAT_A8R8G8B8_UNORM
     };
 
     if (egl_display == EGL_NO_DISPLAY) {
@@ -259,7 +256,7 @@ void renderer_test_capabilities(int* legacy_drawing, uint8_t* flip) {
     }
 
     uint32_t *pixels;
-    if (AHardwareBuffer_lock(new, AHARDWAREBUFFER_USAGE_CPU_WRITE_OFTEN | AHARDWAREBUFFER_USAGE_CPU_READ_OFTEN, -1, NULL, (void **) &pixels) == 0) {
+    if (AHardwareBuffer_lock(new, AHARDWAREBUFFER_USAGE_CPU_WRITE_RARELY | AHARDWAREBUFFER_USAGE_CPU_READ_RARELY, -1, NULL, (void **) &pixels) == 0) {
         pixels[0] = 0xAABBCCDD;
         AHardwareBuffer_unlock(new, NULL);
     } else {
@@ -280,7 +277,7 @@ void renderer_test_capabilities(int* legacy_drawing, uint8_t* flip) {
     if (!(img = eglCreateImageKHR(egl_display, EGL_NO_CONTEXT, EGL_NATIVE_BUFFER_ANDROID, clientBuffer, imageAttributes))) {
         if (eglGetError() == EGL_BAD_PARAMETER) {
             loge("Sampling from HAL_PIXEL_FORMAT_BGRA_8888 is not supported, forcing AHARDWAREBUFFER_FORMAT_R8G8B8X8_UNORM");
-            *flip = 1;
+            // *flip = 1;
         } else {
             loge("Failed to obtain EGLImageKHR from EGLClientBuffer");
             loge("Forcing legacy drawing");
@@ -532,8 +529,8 @@ void renderer_refresh_context(JNIEnv* env) {
         gv_pos = (GLuint) glGetAttribLocation(g_texture_program, "position");
         gv_coords = (GLuint) glGetAttribLocation(g_texture_program, "texCoords");
 
-        gv_pos_bgra = (GLuint) glGetAttribLocation(g_texture_program_bgra, "position");
-        gv_coords_bgra = (GLuint) glGetAttribLocation(g_texture_program_bgra, "texCoords");
+        // gv_pos_bgra = (GLuint) glGetAttribLocation(g_texture_program_bgra, "position");
+        // gv_coords_bgra = (GLuint) glGetAttribLocation(g_texture_program_bgra, "texCoords");
 
         glActiveTexture(GL_TEXTURE0);
         glGenTextures(1, &display.id);
@@ -550,7 +547,7 @@ void renderer_refresh_context(JNIEnv* env) {
         LorieBuffer_describe(buffer, &display.desc);
 
         if (display.desc.data && display.desc.width > 0 && display.desc.height > 0) {
-            int format = display.desc.format == AHARDWAREBUFFER_FORMAT_B8G8R8A8_UNORM ? GL_BGRA_EXT : GL_RGBA;
+            int format = display.desc.format == GL_RGBA;
             // The image will be updated in redraw call because of `drawRequested` flag, so we are not uploading pixels
             glTexImage2D(GL_TEXTURE_2D, 0, format, display.desc.width, display.desc.height, 0, format, GL_UNSIGNED_BYTE, NULL);
         } else {
@@ -592,7 +589,7 @@ static void renderer_renew_image(void) {
         if (image)
             glEGLImageTargetTexture2DOES(GL_TEXTURE_2D, image);
         else if (display.desc.data && display.desc.width > 0 && display.desc.height > 0) {
-            int format = display.desc.format == AHARDWAREBUFFER_FORMAT_B8G8R8A8_UNORM ? GL_BGRA_EXT : GL_RGBA;
+            int format = display.desc.format == GL_RGBA;
             // The image will be updated in redraw call because of `drawRequested` flag, so we are not uploading pixels
             glTexImage2D(GL_TEXTURE_2D, 0, format, display.desc.width, display.desc.height, 0, format, GL_UNSIGNED_BYTE, NULL);
         } else {
@@ -616,7 +613,7 @@ void renderer_redraw_locked(JNIEnv* env) {
     if (display.desc.data && state->drawRequested) {
         state->drawRequested = FALSE;
         bindLinearTexture(display.id);
-        glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, display.desc.width, display.desc.height, display.desc.format == AHARDWAREBUFFER_FORMAT_B8G8R8A8_UNORM ? GL_BGRA_EXT : GL_RGBA, GL_UNSIGNED_BYTE, display.desc.data);
+        glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, display.desc.width, display.desc.height, display.desc.format == GL_RGBA, GL_UNSIGNED_BYTE, display.desc.data);
     }
 
     // Not a mistake, we reset drawRequested flag even in the case if there is no legacy drawing.
@@ -785,10 +782,10 @@ static void draw(GLuint id, float x0, float y0, float x1, float y1, uint8_t flip
         x1, -y1, 1.f, 1.f,
     };
 
-    GLuint p = flip ? gv_pos_bgra : gv_pos, c = flip ? gv_coords_bgra : gv_coords;
+    GLuint p = gv_pos, c = gv_coords;
 
     glActiveTexture(GL_TEXTURE0);
-    glUseProgram(flip ? g_texture_program_bgra : g_texture_program);
+    glUseProgram(g_texture_program);
     glBindTexture(GL_TEXTURE_2D, id);
 
     glVertexAttribPointer(p, 2, GL_FLOAT, GL_FALSE, 16, coords);
