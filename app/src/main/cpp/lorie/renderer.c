@@ -510,7 +510,7 @@ void renderer_refresh_context(JNIEnv* env) {
         return vprintEglError("eglMakeCurrent failed", __LINE__);
     }
 
-    eglSwapInterval(egl_display, 0);
+    eglSwapInterval(egl_display, 1);
 
     if (state)
         // We should redraw image at least once right after surface change
@@ -645,9 +645,9 @@ void renderer_redraw_locked(JNIEnv* env) {
     lorie_mutex_unlock(&state->lock, &state->lockingPid);
 
     if (eglSwapBuffers(egl_display, sfc) != EGL_TRUE) {
-        printEglError("Failed to swap buffers", __LINE__);
+        // printEglError("Failed to swap buffers", __LINE__);
         err = eglGetError();
-        if (err == EGL_BAD_NATIVE_WINDOW || err == EGL_BAD_SURFACE) {
+        if (err == EGL_BAD_NATIVE_WINDOW) {
             log("The window is to be destroyed. Native window disconnected/abandoned, probably activity is destroyed or in background");
 #if RENDERER_IN_ACTIVITY
             renderer_set_window(NULL);
