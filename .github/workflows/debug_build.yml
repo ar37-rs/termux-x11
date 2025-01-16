@@ -4,6 +4,8 @@ on:
   push:
     branches:
       - master
+      - rgba
+      - nofps
     paths-ignore:
       - '**.md'
       - 'img/**'
