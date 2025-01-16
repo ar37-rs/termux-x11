@@ -718,7 +718,7 @@ __noreturn static void* renderer_thread(void* closure) {
             renderer_renew_image();
         pthread_mutex_unlock(&stateLock);
 
-        if (state && state->surfaceAvailable && !state->waitForNextFrame && (state->drawRequested || bufferChanged || windowChanged || state->cursor.moved || state->cursor.updated)) {
+        if (state && state->surfaceAvailable && !state->waitForNextFrame && (bufferChanged || windowChanged || state->drawRequested || state->cursor.moved || state->cursor.updated)) {
             renderer_redraw_locked(env);
         }
     }
