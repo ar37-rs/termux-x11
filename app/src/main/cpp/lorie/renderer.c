@@ -236,7 +236,7 @@ void renderer_test_capabilities(int* legacy_drawing, uint8_t* flip) {
     AHardwareBuffer_Desc d0 = {
             .width = 64,
             .height = 64,
-            .layers = 1 
+            .layers = 1,
             .usage = AHARDWAREBUFFER_USAGE_GPU_SAMPLED_IMAGE | AHARDWAREBUFFER_USAGE_CPU_WRITE_RARELY | AHARDWAREBUFFER_USAGE_CPU_READ_RARELY,
             .format = AHARDWAREBUFFER_FORMAT_R8G8B8A8_UNORM
     };
@@ -707,7 +707,7 @@ __noreturn static void* renderer_thread(void* closure) {
             renderer_renew_image();
         pthread_mutex_unlock(&stateLock);
 
-        if (bufferChanged || windowChanged || stateChanged && !state->waitForNextFrame)
+        if (bufferChanged || windowChanged || stateChanged || !state->waitForNextFrame)
             renderer_redraw_locked(env);
     }
 }
