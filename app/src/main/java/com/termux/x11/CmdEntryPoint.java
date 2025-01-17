@@ -191,6 +191,63 @@ public class CmdEntryPoint extends ICmdEntryInterface.Stub {
         if (libPath != null) {
             try {
                 System.load(libPath);
+                         
+                path = "lib/" + Build.SUPPORTED_ABIS[0] + "/libEGL_angle.so";
+                res = loader != null ? loader.getResource(path) : null;
+                libPath = res != null ? res.getFile().replace("file:", "") : null;
+                try {
+                    System.load(libPath);
+                } catch (Exception e) {
+                    Log.e("CmdEntryPoint", "Failed to dlopen " + libPath, e);
+                    System.err.println("Failed to load native library. Did you install the right apk? Try the universal one.");
+                    System.exit(134);
+                }
+                
+                path = "lib/" + Build.SUPPORTED_ABIS[0] + "/libGLESv2_angle.so";
+                res = loader != null ? loader.getResource(path) : null;
+                libPath = res != null ? res.getFile().replace("file:", "") : null;
+                try {
+                    System.load(libPath);
+                } catch (Exception e) {
+                    Log.e("CmdEntryPoint", "Failed to dlopen " + libPath, e);
+                    System.err.println("Failed to load native library. Did you install the right apk? Try the universal one.");
+                    System.exit(134);
+                }
+
+                path = "lib/" + Build.SUPPORTED_ABIS[0] + "/libGLESv1_CM_angle.so";
+                res = loader != null ? loader.getResource(path) : null;
+                libPath = res != null ? res.getFile().replace("file:", "") : null;
+                try {
+                    System.load(libPath);
+                } catch (Exception e) {
+                    Log.e("CmdEntryPoint", "Failed to dlopen " + libPath, e);
+                    System.err.println("Failed to load native library. Did you install the right apk? Try the universal one.");
+                    System.exit(134);
+                }
+                
+                path = "lib/" + Build.SUPPORTED_ABIS[0] + "/libfeature_support_angle.so";
+                res = loader != null ? loader.getResource(path) : null;
+                libPath = res != null ? res.getFile().replace("file:", "") : null;
+                try {
+                    System.load(libPath);
+                } catch (Exception e) {
+                    Log.e("CmdEntryPoint", "Failed to dlopen " + libPath, e);
+                    System.err.println("Failed to load native library. Did you install the right apk? Try the universal one.");
+                    System.exit(134);
+                }
+
+                path = "lib/" + Build.SUPPORTED_ABIS[0] + "/libVkLayer_khronos_validation.so";
+                res = loader != null ? loader.getResource(path) : null;
+                libPath = res != null ? res.getFile().replace("file:", "") : null;
+                try {
+                    System.load(libPath);
+                } catch (Exception e) {
+                    Log.e("CmdEntryPoint", "Failed to dlopen " + libPath, e);
+                    System.err.println("Failed to load native library. Did you install the right apk? Try the universal one.");
+                    System.exit(134);
+                }
+            }
+                
             } catch (Exception e) {
                 Log.e("CmdEntryPoint", "Failed to dlopen " + libPath, e);
                 System.err.println("Failed to load native library. Did you install the right apk? Try the universal one.");
