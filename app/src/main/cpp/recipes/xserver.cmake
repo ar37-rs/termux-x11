@@ -283,13 +283,13 @@ add_library(Xlorie SHARED
         "lorie/buffer.c"
         "lorie/activity.c")
 
-# add_library(EGL_angle SHARED IMPORTED)
-# set_target_properties(EGL_angle PROPERTIES IMPORTED_LOCATION
-#    /home/runner/work/termux-x11/termux-x11/app/src/main/jniLibs/${ANDROID_ABI}/libEGL_angle.so)
+add_library(EGL SHARED IMPORTED)
+set_target_properties(EGL PROPERTIES IMPORTED_LOCATION
+    /home/runner/work/termux-x11/termux-x11/app/src/main/jniLibs/${ANDROID_ABI}/libEGL.so)
 
-# add_library(GLESv2_angle SHARED IMPORTED)
-# set_target_properties(GLESv2_angle PROPERTIES IMPORTED_LOCATION
-#     /home/runner/work/termux-x11/termux-x11/app/src/main/jniLibs/${ANDROID_ABI}/libGLESv2_angle.so)
+add_library(GLESv2 SHARED IMPORTED)
+set_target_properties(GLESv2 PROPERTIES IMPORTED_LOCATION
+     /home/runner/work/termux-x11/termux-x11/app/src/main/jniLibs/${ANDROID_ABI}/libGLESv2.so)
 
 target_include_directories(Xlorie PRIVATE ${inc} "libxcvt/include")
 target_link_options(Xlorie PRIVATE "-Wl,--as-needed" "-Wl,--no-undefined" "-fvisibility=hidden")
