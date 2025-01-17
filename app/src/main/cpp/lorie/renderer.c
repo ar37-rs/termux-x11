@@ -232,8 +232,6 @@ void renderer_test_capabilities(int* legacy_drawing, uint8_t* flip) {
     // Some devices do not support sampling from HAL_PIXEL_FORMAT_BGRA_8888, here we are checking it.
     const EGLint imageAttributes[] = {EGL_IMAGE_PRESERVED_KHR, EGL_TRUE, EGL_NONE};
     EGLint numConfigs;
-    EGLClientBuffer clientBuffer;
-    EGLImageKHR img;
     AHardwareBuffer *new = NULL;
     int status;
     AHardwareBuffer_Desc d0 = {
@@ -269,25 +267,6 @@ void renderer_test_capabilities(int* legacy_drawing, uint8_t* flip) {
         AHardwareBuffer_release(new);
         return;
     }
-
-    clientBuffer = eglGetNativeClientBufferANDROID(new);
-    if (!clientBuffer) {
-        *legacy_drawing = 1;
-        AHardwareBuffer_release(new);
-        return vprintEglError("Failed to obtain EGLClientBuffer from AHardwareBuffer, forcing legacy drawing", __LINE__);
-    }
-
-    if (!(img = eglCreateImageKHR(egl_display, EGL_NO_CONTEXT, EGL_NATIVE_PIXMAP_KHR, clientBuffer, imageAttributes))) {
-        if (eglGetError() == EGL_BAD_PARAMETER) {
-            loge("Sampling from HAL_PIXEL_FORMAT_BGRA_8888 is not supported, forcing AHARDWAREBUFFER_FORMAT_R8G8B8X8_UNORM");
-            *flip = 1;
-        } else {
-            loge("Failed to obtain EGLImageKHR from EGLClientBuffer");
-            loge("Forcing legacy drawing");
-            *legacy_drawing = 1;
-        }
-        AHardwareBuffer_release(new);
-    } else {
         // For some reason all devices I checked had no GL_EXT_texture_format_BGRA8888 support, but some of them still provided BGRA extension.
         // EGL does not provide functions to query texture format in runtime.
         // Workarounds are less performant but at least they let us use Termux:X11 on devices with missing BGRA support.
@@ -332,10 +311,8 @@ void renderer_test_capabilities(int* legacy_drawing, uint8_t* flip) {
         }
         eglMakeCurrent(egl_display, EGL_NO_SURFACE, EGL_NO_SURFACE, EGL_NO_CONTEXT);
         eglDestroyContext(egl_display, testctx);
-        eglDestroyImageKHR(egl_display, img);
         eglDestroySurface(egl_display, checksfc);
         AHardwareBuffer_release(new);
-    }
 }
 
 __unused void renderer_set_shared_state(struct lorie_shared_server_state* newState) {
