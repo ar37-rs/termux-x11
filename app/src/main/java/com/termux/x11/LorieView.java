@@ -381,8 +381,8 @@ public class LorieView extends SurfaceView implements InputStub {
 
     static {
         System.loadLibrary("Xlorie");
-        System.loadLibrary("EGL");
-        System.loadLibrary("GLESv2");
+        System.loadLibrary("EGL_angle");
+        System.loadLibrary("GLESv2_angle");
         System.loadLibrary("GLESv1_CM_angle");
         System.loadLibrary("feature_support_angle");
         System.loadLibrary("VkLayer_khronos_validation");  
