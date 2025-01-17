@@ -464,7 +464,7 @@ void renderer_refresh_context(JNIEnv* env) {
 #endif
     int width = pendingWin ? ANativeWindow_getWidth(pendingWin) : 0;
     int height = pendingWin ? ANativeWindow_getHeight(pendingWin) : 0;
-    log("renderer_set_window %p %d %d", pendingWin, width, height);
+    // log("renderer_set_window %p %d %d", pendingWin, width, height);
 
 #if RENDERER_IN_ACTIVITY
     release_win_and_surface(env, &win, &sfc);
@@ -541,7 +541,7 @@ void renderer_refresh_context(JNIEnv* env) {
     }
 
     glViewport(0, 0, ANativeWindow_getWidth(win), ANativeWindow_getHeight(win));
-    log("Xlorie: new surface applied: %p\n", sfc);
+    // log("Xlorie: new surface applied: %p\n", sfc);
 
     bindLinearTexture(display.id);
     if (image)
@@ -603,7 +603,7 @@ static void renderer_renew_image(void) {
         }
     }
 
-    log("renderer: buffer changed %p %d %d", buffer, display.desc.width, display.desc.height);
+    // log("renderer: buffer changed %p %d %d", buffer, display.desc.width, display.desc.height);
 }
 
 void renderer_redraw_locked(JNIEnv* env) {
@@ -626,7 +626,7 @@ void renderer_redraw_locked(JNIEnv* env) {
     glFlush();
 
     if (state->cursor.updated) {
-        log("Xlorie: updating cursor\n");
+        // log("Xlorie: updating cursor\n");
         lorie_mutex_lock(&state->cursor.lock, &state->cursor.lockingPid);
         state->cursor.updated = false;
         bindLinearTexture(cursor.id);
@@ -645,7 +645,7 @@ void renderer_redraw_locked(JNIEnv* env) {
     lorie_mutex_unlock(&state->lock, &state->lockingPid);
 
     if (eglSwapBuffers(egl_display, sfc) != EGL_TRUE) {
-        printEglError("Failed to swap buffers", __LINE__);
+        /// printEglError("Failed to swap buffers", __LINE__);
         err = eglGetError();
         if (err == EGL_BAD_NATIVE_WINDOW || err == EGL_BAD_SURFACE) {
             log("The window is to be destroyed. Native window disconnected/abandoned, probably activity is destroyed or in background");
@@ -667,7 +667,7 @@ void renderer_redraw_locked(JNIEnv* env) {
     eglClientWaitSyncKHR(egl_display, fence, 0, EGL_FOREVER);
     eglDestroySyncKHR(egl_display, fence);
 
-    state->renderedFrames++;
+    // state->renderedFrames++;
 }
 
 static inline __always_inline bool renderer_should_wait(void) {
