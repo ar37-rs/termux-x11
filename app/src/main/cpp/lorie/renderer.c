@@ -232,6 +232,7 @@ void renderer_test_capabilities(int* legacy_drawing, uint8_t* flip) {
     // Some devices do not support sampling from HAL_PIXEL_FORMAT_BGRA_8888, here we are checking it.
     const EGLint imageAttributes[] = {EGL_IMAGE_PRESERVED_KHR, EGL_TRUE, EGL_NONE};
     EGLint numConfigs;
+    EGLImageKHR img;
     AHardwareBuffer *new = NULL;
     int status;
     AHardwareBuffer_Desc d0 = {
