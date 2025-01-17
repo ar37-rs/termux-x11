@@ -277,7 +277,7 @@ void renderer_test_capabilities(int* legacy_drawing, uint8_t* flip) {
         return vprintEglError("Failed to obtain EGLClientBuffer from AHardwareBuffer, forcing legacy drawing", __LINE__);
     }
 
-    if (!(img = eglCreateImageKHR(egl_display, EGL_NO_CONTEXT, EGL_NATIVE_BUFFER_ANDROID, clientBuffer, imageAttributes))) {
+    if (!(img = eglCreateImageKHR(egl_display, EGL_NO_CONTEXT, EGL_NATIVE_PIXMAP_KHR, clientBuffer, imageAttributes))) {
         if (eglGetError() == EGL_BAD_PARAMETER) {
             loge("Sampling from HAL_PIXEL_FORMAT_BGRA_8888 is not supported, forcing AHARDWAREBUFFER_FORMAT_R8G8B8X8_UNORM");
             *flip = 1;
