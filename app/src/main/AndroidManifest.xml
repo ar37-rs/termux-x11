@@ -9,7 +9,6 @@
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS"/>
 
     <application
-        android:extractNativeLibs="true"
         android:isGame="true"
         android:usesCleartextTraffic="true"
         android:allowBackup="false"
