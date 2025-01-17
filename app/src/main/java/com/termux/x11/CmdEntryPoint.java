@@ -203,10 +203,9 @@ public class CmdEntryPoint extends ICmdEntryInterface.Stub {
             }
         }
 
-        String path = "lib/" + Build.SUPPORTED_ABIS[0] + "/libEGL.so";
-        ClassLoader loader = CmdEntryPoint.class.getClassLoader();
-        URL res = loader != null ? loader.getResource(path) : null;
-        String libPath = res != null ? res.getFile().replace("file:", "") : null;
+        path = "lib/" + Build.SUPPORTED_ABIS[0] + "/libEGL_angle.so";
+        res = loader != null ? loader.getResource(path) : null;
+        libPath = res != null ? res.getFile().replace("file:", "") : null;
         if (libPath != null) {
             try {
                 System.load(libPath);
@@ -223,10 +222,9 @@ public class CmdEntryPoint extends ICmdEntryInterface.Stub {
             }
         }
 
-        String path = "lib/" + Build.SUPPORTED_ABIS[0] + "/libGLESv2.so";
-        ClassLoader loader = CmdEntryPoint.class.getClassLoader();
-        URL res = loader != null ? loader.getResource(path) : null;
-        String libPath = res != null ? res.getFile().replace("file:", "") : null;
+        path = "lib/" + Build.SUPPORTED_ABIS[0] + "/libGLESv2_angle.so";
+        res = loader != null ? loader.getResource(path) : null;
+        libPath = res != null ? res.getFile().replace("file:", "") : null;
         if (libPath != null) {
             try {
                 System.load(libPath);
@@ -243,10 +241,9 @@ public class CmdEntryPoint extends ICmdEntryInterface.Stub {
             }
         }
 
-        String path = "lib/" + Build.SUPPORTED_ABIS[0] + "/libGLESv1_CM_angle.so";
-        ClassLoader loader = CmdEntryPoint.class.getClassLoader();
-        URL res = loader != null ? loader.getResource(path) : null;
-        String libPath = res != null ? res.getFile().replace("file:", "") : null;
+        path = "lib/" + Build.SUPPORTED_ABIS[0] + "/libGLESv1_CM_angle.so";
+        res = loader != null ? loader.getResource(path) : null;
+        libPath = res != null ? res.getFile().replace("file:", "") : null;
         if (libPath != null) {
             try {
                 System.load(libPath);
@@ -263,10 +260,9 @@ public class CmdEntryPoint extends ICmdEntryInterface.Stub {
             }
         }
 
-        String path = "lib/" + Build.SUPPORTED_ABIS[0] + "/libfeature_support_angle.so";
-        ClassLoader loader = CmdEntryPoint.class.getClassLoader();
-        URL res = loader != null ? loader.getResource(path) : null;
-        String libPath = res != null ? res.getFile().replace("file:", "") : null;
+        path = "lib/" + Build.SUPPORTED_ABIS[0] + "/libfeature_support_angle.so";
+        res = loader != null ? loader.getResource(path) : null;
+        libPath = res != null ? res.getFile().replace("file:", "") : null;
         if (libPath != null) {
             try {
                 System.load(libPath);
@@ -283,10 +279,9 @@ public class CmdEntryPoint extends ICmdEntryInterface.Stub {
             }
         }
 
-        String path = "lib/" + Build.SUPPORTED_ABIS[0] + "/libVkLayer_khronos_validation.so";
-        ClassLoader loader = CmdEntryPoint.class.getClassLoader();
-        URL res = loader != null ? loader.getResource(path) : null;
-        String libPath = res != null ? res.getFile().replace("file:", "") : null;
+        path = "lib/" + Build.SUPPORTED_ABIS[0] + "/libVkLayer_khronos_validation.so";
+        res = loader != null ? loader.getResource(path) : null;
+        libPath = res != null ? res.getFile().replace("file:", "") : null;
         if (libPath != null) {
             try {
                 System.load(libPath);
