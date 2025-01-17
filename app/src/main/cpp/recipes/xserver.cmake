@@ -283,17 +283,17 @@ add_library(Xlorie SHARED
         "lorie/buffer.c"
         "lorie/activity.c")
 
-add_library(EGL_angle SHARED IMPORTED)
-set_target_properties(EGL_angle PROPERTIES IMPORTED_LOCATION
-    /home/runner/work/termux-x11/termux-x11/app/src/main/jniLibs/${ANDROID_ABI}/libEGL_angle.so)
+# add_library(EGL_angle SHARED IMPORTED)
+# set_target_properties(EGL_angle PROPERTIES IMPORTED_LOCATION
+#    /home/runner/work/termux-x11/termux-x11/app/src/main/jniLibs/${ANDROID_ABI}/libEGL_angle.so)
 
-add_library(GLESv2_angle SHARED IMPORTED)
-set_target_properties(GLESv2_angle PROPERTIES IMPORTED_LOCATION
-    /home/runner/work/termux-x11/termux-x11/app/src/main/jniLibs/${ANDROID_ABI}/libGLESv2_angle.so)
+# add_library(GLESv2_angle SHARED IMPORTED)
+# set_target_properties(GLESv2_angle PROPERTIES IMPORTED_LOCATION
+#     /home/runner/work/termux-x11/termux-x11/app/src/main/jniLibs/${ANDROID_ABI}/libGLESv2_angle.so)
 
 target_include_directories(Xlorie PRIVATE ${inc} "libxcvt/include")
 target_link_options(Xlorie PRIVATE "-Wl,--as-needed" "-Wl,--no-undefined" "-fvisibility=hidden")
-target_link_libraries(Xlorie "-Wl,--whole-archive" ${XSERVER_LIBS} "-Wl,--no-whole-archive" android log m z EGL_angle GLESv2_angle)
+target_link_libraries(Xlorie "-Wl,--whole-archive" ${XSERVER_LIBS} "-Wl,--no-whole-archive" android log m z EGL GLESv2)
 target_compile_options(Xlorie PRIVATE ${compile_options})
 target_apply_patch(Xlorie "${CMAKE_CURRENT_SOURCE_DIR}/xserver" "${CMAKE_CURRENT_SOURCE_DIR}/patches/xserver.patch")
 target_apply_patch(Xlorie "${CMAKE_CURRENT_SOURCE_DIR}/libepoxy" "${CMAKE_CURRENT_SOURCE_DIR}/patches/libepoxy.patch")
