@@ -647,8 +647,8 @@ void renderer_redraw_locked(JNIEnv* env) {
     if (eglSwapBuffers(egl_display, sfc) != EGL_TRUE) {
         printEglError("Failed to swap buffers", __LINE__);
         err = eglGetError();
-        if (err == EGL_BAD_NATIVE_WINDOW || err == EGL_BAD_SURFACE) {
-            log("The window is to be destroyed. Native window disconnected/abandoned, probably activity is destroyed or in background");
+        if (err == EGL_BAD_NATIVE_WINDOW) {
+            // log("The window is to be destroyed. Native window disconnected/abandoned, probably activity is destroyed or in background");
 #if RENDERER_IN_ACTIVITY
             renderer_set_window(NULL);
 #else
