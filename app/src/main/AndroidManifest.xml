@@ -19,8 +19,8 @@
         android:theme="@style/AppTheme"
         tools:ignore="DataExtractionRules,GoogleAppIndexingWarning">
         <activity
-            android:hardwareAccelerated="true"
             android:name=".MainActivity"
+            android:hardwareAccelerated="true"
             android:taskAffinity=".MainActivity"
             android:launchMode="singleInstance"
             android:supportsPictureInPicture="true"
