@@ -674,7 +674,11 @@ static inline __always_inline bool renderer_should_wait(void) {
     if (state->drawRequested || state->cursor.moved || state->cursor.updated)
         // X server reported drawing or cursor changes, no need to wait.
         return false;
-    
+
+    if (!state || !state->surfaceAvailable || state->waitForNextFrame)
+        // Even in the case if there are pending changes, we can not draw it without rendering surface
+        return true;
+
     if (stateChanged || windowChanged || bufferChanged)
         // If there are pending changes we should process them immediately.
         return false;
