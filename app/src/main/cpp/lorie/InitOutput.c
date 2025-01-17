@@ -114,9 +114,9 @@ typedef struct {
 ScreenPtr pScreenPtr;
 static lorieScreenInfo lorieScreen = {
         .stateFd = -1,
-        .root.width = 1280,
-        .root.height = 1024,
-        .root.framerate = 30,
+        .root.width = 1024,
+        .root.height = 105p,
+        .root.framerate = 60,
         .root.name = "screen",
         .dri3 = TRUE,
         .vblank_queue = { &lorieScreen.vblank_queue, &lorieScreen.vblank_queue },
@@ -467,10 +467,7 @@ static Bool lorieRedraw(__unused ClientPtr pClient, __unused void *closure) {
 }
 
 static CARD32 lorieFramecounter(unused OsTimerPtr timer, unused CARD32 time, unused void *arg) {
-    if (pvfb->state->renderedFrames)
-        log(INFO, "%d frames in 5.0 seconds = %.1f FPS",
-            pvfb->state->renderedFrames, ((float) pvfb->state->renderedFrames) / 5);
-    pvfb->state->renderedFrames = 0;
+   
     return 5000;
 }
 
@@ -482,7 +479,7 @@ static Bool lorieCreateScreenResources(ScreenPtr pScreen) {
         FatalError("Couldn't setup damage\n");
 
     DamageRegister(&(*pScreen->GetScreenPixmap)(pScreen)->drawable, pvfb->damage);
-    pvfb->fpsTimer = TimerSet(NULL, 0, 5000, lorieFramecounter, pScreen);
+    // pvfb->fpsTimer = TimerSet(NULL, 0, 5000, lorieFramecounter, pScreen);
 
 #if RENDERER_IN_ACTIVITY
     lorieSendRootWindowBuffer(((LoriePixmapPriv*) exaGetPixmapDriverPrivate(pScreen->devPrivate))->buffer);
@@ -661,7 +658,7 @@ static Bool lorieScreenInit(ScreenPtr pScreen, unused int argc, unused char **ar
 void lorieConfigureNotify(int width, int height, int framerate, size_t name_size, char* name) {
     ScreenPtr pScreen = pScreenPtr;
     RROutputPtr output = RRFirstOutput(pScreen);
-    framerate = framerate ? framerate : 30;
+    framerate = framerate ? framerate : 60;
 
     if (output && name) {
         // We should save this name in pvfb to make sure the name will be restored in the case if the server is being reset.
