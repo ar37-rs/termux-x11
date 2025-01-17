@@ -182,51 +182,12 @@ public class CmdEntryPoint extends ICmdEntryInterface.Stub {
             Log.e("CmdEntryPoint", "Something went wrong when preparing MainLooper", e);
         }
         handler = new Handler();
-        ctx = createContext();
-
-        String path = "lib/" + Build.SUPPORTED_ABIS[0] + "/libXlorie.so";
-        ClassLoader loader = CmdEntryPoint.class.getClassLoader();
-        URL res = loader != null ? loader.getResource(path) : null;
-        String libPath = res != null ? res.getFile().replace("file:", "") : null;
-        if (libPath != null) {
-            try {
-                System.load(libPath);
-                         
-                path = "lib/" + Build.SUPPORTED_ABIS[0] + "/libEGL_angle.so";
-                res = loader != null ? loader.getResource(path) : null;
-                libPath = res != null ? res.getFile().replace("file:", "") : null;
-                System.load(libPath);
-                
-                path = "lib/" + Build.SUPPORTED_ABIS[0] + "/libGLESv2_angle.so";
-                res = loader != null ? loader.getResource(path) : null;
-                libPath = res != null ? res.getFile().replace("file:", "") : null;
-                System.load(libPath);
-
-                path = "lib/" + Build.SUPPORTED_ABIS[0] + "/libGLESv1_CM_angle.so";
-                res = loader != null ? loader.getResource(path) : null;
-                libPath = res != null ? res.getFile().replace("file:", "") : null;
-                System.load(libPath);
-                
-                path = "lib/" + Build.SUPPORTED_ABIS[0] + "/libfeature_support_angle.so";
-                res = loader != null ? loader.getResource(path) : null;
-                libPath = res != null ? res.getFile().replace("file:", "") : null;
-                System.load(libPath);
-
-                path = "lib/" + Build.SUPPORTED_ABIS[0] + "/libVkLayer_khronos_validation.so";
-                res = loader != null ? loader.getResource(path) : null;
-                libPath = res != null ? res.getFile().replace("file:", "") : null;                
-                System.load(libPath);
-            } catch (Exception e) {
-                Log.e("CmdEntryPoint", "Failed to dlopen " + libPath, e);
-                System.err.println("Failed to load native library. Did you install the right apk? Try the universal one.");
-                System.exit(134);
-            }
-        } else {
-            // It is critical only when it is not running in Android application process
-            if (MainActivity.getInstance() == null) {
-                System.err.println("Failed to acquire native library. Did you install the right apk? Try the universal one.");
-                System.exit(134);
-            }
-        }
+        ctx = createContext();        
+        System.loadLibrary("Xlorie");
+        System.loadLibrary("EGL_angle");
+        System.loadLibrary("GLESv2_angle");
+        System.loadLibrary("GLESv1_CM_angle");
+        System.loadLibrary("feature_support_angle");
+        System.loadLibrary("VkLayer_khronos_validation");    
     }
 }
