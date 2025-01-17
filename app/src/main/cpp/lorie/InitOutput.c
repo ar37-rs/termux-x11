@@ -115,7 +115,7 @@ ScreenPtr pScreenPtr;
 static lorieScreenInfo lorieScreen = {
         .stateFd = -1,
         .root.width = 1024,
-        .root.height = 105p,
+        .root.height = 1050,
         .root.framerate = 60,
         .root.name = "screen",
         .dri3 = TRUE,
