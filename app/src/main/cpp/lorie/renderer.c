@@ -241,7 +241,7 @@ void renderer_test_capabilities(int* legacy_drawing, uint8_t* flip) {
             .height = 64,
             .layers = 1,
             .usage = AHARDWAREBUFFER_USAGE_GPU_SAMPLED_IMAGE | AHARDWAREBUFFER_USAGE_CPU_WRITE_OFTEN | AHARDWAREBUFFER_USAGE_CPU_READ_OFTEN,
-            .format = AHARDWAREBUFFER_FORMAT_R8G8B8A8_UNORM
+            .format = AHARDWAREBUFFER_FORMAT_B8G8R8A8_UNORM
     };
 
     if (egl_display == EGL_NO_DISPLAY) {
@@ -671,10 +671,6 @@ void renderer_redraw_locked(JNIEnv* env) {
 }
 
 static inline __always_inline bool renderer_should_wait(void) {
-    if (!state || !state->surfaceAvailable || state->waitForNextFrame)
-        // Even in the case if there are pending changes, we can not draw it without rendering surface
-        return true;
-    
     if (state->drawRequested || state->cursor.moved || state->cursor.updated)
         // X server reported drawing or cursor changes, no need to wait.
         return false;
