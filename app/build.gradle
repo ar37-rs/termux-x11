@@ -15,12 +15,6 @@ android {
         buildConfigField "String", "COMMIT", "\"" + ("git rev-parse HEAD\n".execute().getText().trim() ?: (System.getenv('CURRENT_COMMIT') ?: "NO_COMMIT")) + "\""
     }
     
-    ndk {
-        abiFilters "arm64-v8a"
-    }
-
-    
-
     signingConfigs.debug {
         storeFile file('testkey_untrusted.jks')
         keyAlias 'alias'
@@ -35,6 +29,9 @@ android {
     buildFeatures.aidl true
     buildFeatures.buildConfig true
     buildTypes.debug {
+        ndk {
+            abiFilters "arm64-v8a"
+        }        
         signingConfig signingConfigs.debug
         postprocessing {
             removeUnusedCode true
