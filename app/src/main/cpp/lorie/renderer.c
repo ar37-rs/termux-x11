@@ -250,44 +250,8 @@ void renderer_test_capabilities(int* legacy_drawing, uint8_t* flip) {
             return vprintEglError("Got no EGL display", __LINE__);
     }
 
-    status = AHardwareBuffer_allocate(&d0, &new);
-    if (status != 0 || new == NULL) {
-        loge("Failed to allocate native buffer (%p, error %d)", new, status);
-        loge("Forcing legacy drawing");
-        *legacy_drawing = 1;
-        return;
-    }
 
-    uint32_t *pixels;
-    if (AHardwareBuffer_lock(new, AHARDWAREBUFFER_USAGE_CPU_WRITE_OFTEN | AHARDWAREBUFFER_USAGE_CPU_READ_OFTEN, -1, NULL, (void **) &pixels) == 0) {
-        pixels[0] = 0xAABBCCDD;
-        AHardwareBuffer_unlock(new, NULL);
-    } else {
-        loge("Failed to lock native buffer (%p, error %d)", new, status);
-        loge("Forcing legacy drawing");
-        *legacy_drawing = 1;
-        AHardwareBuffer_release(new);
-        return;
-    }
-
-    clientBuffer = eglGetNativeClientBufferANDROID(new);
-    if (!clientBuffer) {
-        *legacy_drawing = 1;
-        AHardwareBuffer_release(new);
-        return vprintEglError("Failed to obtain EGLClientBuffer from AHardwareBuffer, forcing legacy drawing", __LINE__);
-    }
-
-    if (!(img = eglCreateImageKHR(egl_display, EGL_NO_CONTEXT, EGL_NATIVE_BUFFER_ANDROID, clientBuffer, imageAttributes))) {
-        if (eglGetError() == EGL_BAD_PARAMETER) {
-            loge("Sampling from HAL_PIXEL_FORMAT_BGRA_8888 is not supported, forcing AHARDWAREBUFFER_FORMAT_R8G8B8X8_UNORM");
-            *flip = 1;
-        } else {
-            loge("Failed to obtain EGLImageKHR from EGLClientBuffer");
-            loge("Forcing legacy drawing");
-            *legacy_drawing = 1;
-        }
-        AHardwareBuffer_release(new);
-    } else {
+ 
         // For some reason all devices I checked had no GL_EXT_texture_format_BGRA8888 support, but some of them still provided BGRA extension.
         // EGL does not provide functions to query texture format in runtime.
         // Workarounds are less performant but at least they let us use Termux:X11 on devices with missing BGRA support.
@@ -332,10 +296,8 @@ void renderer_test_capabilities(int* legacy_drawing, uint8_t* flip) {
         }
         eglMakeCurrent(egl_display, EGL_NO_SURFACE, EGL_NO_SURFACE, EGL_NO_CONTEXT);
         eglDestroyContext(egl_display, testctx);
-        eglDestroyImageKHR(egl_display, img);
         eglDestroySurface(egl_display, checksfc);
-        AHardwareBuffer_release(new);
-    }
+    
 }
 
 __unused void renderer_set_shared_state(struct lorie_shared_server_state* newState) {
