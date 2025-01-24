@@ -256,6 +256,7 @@ public class MainActivity extends AppCompatActivity implements View.OnApplyWindo
     //Register the needed events to handle stylus as left, middle and right click
     @SuppressLint("ClickableViewAccessibility")
     private void initStylusAuxButtons() {
+        final ViewPager pager = getTerminalToolbarViewPager();
         boolean stylusMenuEnabled = prefs.showStylusClickOverride.get() && LorieView.connected();
         final float menuUnselectedTrasparency = 0.66f;
         final float menuSelectedTrasparency = 1.0f;
@@ -296,6 +297,8 @@ public class MainActivity extends AppCompatActivity implements View.OnApplyWindo
                 //Calculate screen border making sure btn is fully inside the view
                 float maxX = frm.getWidth() - 4 * left.getWidth();
                 float maxY = frm.getHeight() - 4 * left.getHeight();
+                if (pager.getVisibility() == View.VISIBLE)
+                    maxY -= pager.getHeight();
 
                 //Make sure the Stylus menu is fully inside the screen
                 overlay.setX(MathUtils.clamp(overlay.getX(), 0, maxX));
@@ -318,6 +321,8 @@ public class MainActivity extends AppCompatActivity implements View.OnApplyWindo
                 //Calculate screen border making sure btn is fully inside the view
                 float maxX = frm.getWidth() - visibility.getWidth();
                 float maxY = frm.getHeight() - visibility.getHeight();
+                if (pager.getVisibility() == View.VISIBLE)
+                    maxY -= pager.getHeight();
 
                 switch (event.getAction()) {
                     case DragEvent.ACTION_DRAG_LOCATION:
@@ -361,23 +366,16 @@ public class MainActivity extends AppCompatActivity implements View.OnApplyWindo
     }
 
     private void makeSureHelpersAreVisibleAndInScreenBounds() {
-        int[] offset = new int[2];
-        int[] offset2 = new int[2];
+        final ViewPager pager = getTerminalToolbarViewPager();
         View mouseAuxButtons = findViewById(R.id.mouse_buttons);
         View stylusAuxButtons = findViewById(R.id.mouse_helper_visibility);
-        frm.getLocationInWindow(offset2);
+        int maxYDecrement = (pager.getVisibility() == View.VISIBLE) ? pager.getHeight() : 0;
 
-        if (mouseAuxButtons.getVisibility() == View.VISIBLE) {
-            mouseAuxButtons.getLocationInWindow(offset);
-            mouseAuxButtons.setX(MathUtils.clamp(offset[0], offset2[0], offset2[0] + frm.getWidth() - mouseAuxButtons.getWidth()));
-            mouseAuxButtons.setY(MathUtils.clamp(offset[1], offset2[1], offset2[1] + frm.getHeight() - mouseAuxButtons.getHeight()));
-        }
+        mouseAuxButtons.setX(MathUtils.clamp(mouseAuxButtons.getX(), frm.getX(), frm.getX() + frm.getWidth() - mouseAuxButtons.getWidth()));
+        mouseAuxButtons.setY(MathUtils.clamp(mouseAuxButtons.getY(), frm.getY(), frm.getY() + frm.getHeight() - mouseAuxButtons.getHeight() - maxYDecrement));
 
-        if (stylusAuxButtons.getVisibility() == View.VISIBLE) {
-            stylusAuxButtons.getLocationInWindow(offset);
-            stylusAuxButtons.setX(MathUtils.clamp(offset[0], offset2[0], offset2[0] + frm.getWidth() - stylusAuxButtons.getWidth()));
-            stylusAuxButtons.setY(MathUtils.clamp(offset[1], offset2[1], offset2[1] + frm.getHeight() - stylusAuxButtons.getHeight()));
-        }
+        stylusAuxButtons.setX(MathUtils.clamp(stylusAuxButtons.getX(), frm.getX(), frm.getX() + frm.getWidth() - stylusAuxButtons.getWidth()));
+        stylusAuxButtons.setY(MathUtils.clamp(stylusAuxButtons.getY(), frm.getY(), frm.getY() + frm.getHeight() - stylusAuxButtons.getHeight() - maxYDecrement));
     }
 
     public void toggleStylusAuxButtons() {
@@ -407,6 +405,7 @@ public class MainActivity extends AppCompatActivity implements View.OnApplyWindo
 
     @SuppressLint("ClickableViewAccessibility")
     void initMouseAuxButtons() {
+        final ViewPager pager = getTerminalToolbarViewPager();
         Button left = findViewById(R.id.mouse_button_left_click);
         Button right = findViewById(R.id.mouse_button_right_click);
         Button middle = findViewById(R.id.mouse_button_middle_click);
@@ -428,10 +427,12 @@ public class MainActivity extends AppCompatActivity implements View.OnApplyWindo
                 secondaryLayer.setOrientation(LinearLayout.HORIZONTAL);
             }
             handler.postDelayed(() -> {
-                int[] offset = new int[2];
-                frm.getLocationInWindow(offset);
-                primaryLayer.setX(MathUtils.clamp(primaryLayer.getX(), offset[0], offset[0] + frm.getWidth() - primaryLayer.getWidth()));
-                primaryLayer.setY(MathUtils.clamp(primaryLayer.getY(), offset[1], offset[1] + frm.getHeight() - primaryLayer.getHeight()));
+                float maxX = frm.getX() + frm.getWidth() - primaryLayer.getWidth();
+                float maxY = frm.getY() + frm.getHeight() - primaryLayer.getHeight();
+                if (pager.getVisibility() == View.VISIBLE)
+                    maxY -= pager.getHeight();
+                primaryLayer.setX(MathUtils.clamp(primaryLayer.getX(), frm.getX(), maxX));
+                primaryLayer.setY(MathUtils.clamp(primaryLayer.getY(), frm.getY(), maxY));
             }, 10);
         });
 
@@ -469,12 +470,16 @@ public class MainActivity extends AppCompatActivity implements View.OnApplyWindo
                         pos.setPressed(true);
                         break;
                     case MotionEvent.ACTION_MOVE: {
+                        final ViewPager pager = getTerminalToolbarViewPager();
                         int[] offset = new int[2];
-                        int[] offset2 = new int[2];
                         primaryLayer.getLocationInWindow(offset);
-                        frm.getLocationInWindow(offset2);
-                        primaryLayer.setX(MathUtils.clamp(offset[0] - startOffset[0] + e.getX(), offset2[0], offset2[0] + frm.getWidth() - primaryLayer.getWidth()));
-                        primaryLayer.setY(MathUtils.clamp(offset[1] - startOffset[1] + e.getY(), offset2[1], offset2[1] + frm.getHeight() - primaryLayer.getHeight()));
+                        float maxX = frm.getX() + frm.getWidth() - primaryLayer.getWidth();
+                        float maxY = frm.getY() + frm.getHeight() - primaryLayer.getHeight();
+                        if (pager.getVisibility() == View.VISIBLE)
+                            maxY -= pager.getHeight();
+
+                        primaryLayer.setX(MathUtils.clamp(offset[0] - startOffset[0] + e.getX(), frm.getX(), maxX));
+                        primaryLayer.setY(MathUtils.clamp(offset[1] - startOffset[1] + e.getY(), frm.getY(), maxY));
                         break;
                     }
                     case MotionEvent.ACTION_UP: {
@@ -869,6 +874,8 @@ public class MainActivity extends AppCompatActivity implements View.OnApplyWindo
                 tryConnect();
             else
                 getLorieView().setPointerIcon(PointerIcon.getSystemIcon(this, PointerIcon.TYPE_NULL));
+
+            onWindowFocusChanged(hasWindowFocus());
         });
     }
 
