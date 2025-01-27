@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - master
+      - mod
     paths-ignore:
       - '**.md'
       - 'img/**'
