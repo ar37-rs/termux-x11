@@ -579,8 +579,6 @@ void rendererRedrawLocked(JNIEnv* env) {
     fence = eglCreateSyncKHR(egl_display, EGL_SYNC_FENCE_KHR, NULL);
     eglClientWaitSyncKHR(egl_display, fence, 0, EGL_FOREVER);
     eglDestroySyncKHR(egl_display, fence);
-
-    state->renderedFrames++;
 }
 
 static inline __always_inline bool rendererShouldWait(void) {
