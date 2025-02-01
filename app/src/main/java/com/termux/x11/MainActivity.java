@@ -45,8 +45,8 @@ import android.view.PointerIcon;
 import android.view.View;
 import android.view.ViewConfiguration;
 import android.view.ViewGroup;
+import android.view.ViewTreeObserver;
 import android.view.Window;
-import android.view.WindowInsets;
 import android.view.inputmethod.InputMethodManager;
 import android.widget.Button;
 import android.widget.EditText;
@@ -73,7 +73,7 @@ import java.util.Map;
 
 @SuppressLint("ApplySharedPref")
 @SuppressWarnings({"deprecation", "unused"})
-public class MainActivity extends AppCompatActivity implements View.OnApplyWindowInsetsListener {
+public class MainActivity extends AppCompatActivity {
     public static final String ACTION_STOP = "com.termux.x11.ACTION_STOP";
     public static final String ACTION_CUSTOM = "com.termux.x11.ACTION_CUSTOM";
 
@@ -120,6 +120,15 @@ public class MainActivity extends AppCompatActivity implements View.OnApplyWindo
                 android.util.Log.d("ACTION_CUSTOM", "action " + intent.getStringExtra("what"));
                 mInputHandler.extractUserActionFromPreferences(prefs, intent.getStringExtra("what")).accept(0, true);
             }
+        }
+    };
+
+    ViewTreeObserver.OnPreDrawListener mOnPredrawListener = new ViewTreeObserver.OnPreDrawListener() {
+        @Override
+        public boolean onPreDraw() {
+            if (LorieView.connected())
+                handler.post(() -> findViewById(android.R.id.content).getViewTreeObserver().removeOnPreDrawListener(mOnPredrawListener));
+            return false;
         }
     };
 
@@ -191,7 +200,7 @@ public class MainActivity extends AppCompatActivity implements View.OnApplyWindo
         lorieParent.setOnCapturedPointerListener((v, e) -> mInputHandler.handleTouchEvent(lorieView, lorieView, e));
         lorieView.setOnKeyListener(mLorieKeyListener);
 
-        lorieView.setCallback((sfc, surfaceWidth, surfaceHeight, screenWidth, screenHeight) -> {
+        lorieView.setCallback((surfaceWidth, surfaceHeight, screenWidth, screenHeight) -> {
             String name;
             int framerate = (int) ((lorieView.getDisplay() != null) ? lorieView.getDisplay().getRefreshRate() : 30);
 
@@ -220,7 +229,11 @@ public class MainActivity extends AppCompatActivity implements View.OnApplyWindo
         mNotification = buildNotification();
         mNotificationManager.notify(mNotificationId, mNotification);
 
-        tryConnect();
+        if (tryConnect()) {
+            final View content = findViewById(android.R.id.content);
+            content.getViewTreeObserver().addOnPreDrawListener(mOnPredrawListener);
+            handler.postDelayed(() -> content.getViewTreeObserver().removeOnPreDrawListener(mOnPredrawListener), 500);
+        }
         onPreferencesChanged("");
 
         toggleExtraKeys(false, false);
@@ -526,14 +539,14 @@ public class MainActivity extends AppCompatActivity implements View.OnApplyWindo
         }
     }
 
-    void tryConnect() {
+    boolean tryConnect() {
         if (LorieView.connected())
-            return;
+            return false;
 
         if (service == null) {
-            LorieView.requestConnection();
+            boolean sent = LorieView.requestConnection();
             handler.postDelayed(this::tryConnect, 250);
-            return;
+            return true;
         }
 
         try {
@@ -550,10 +563,9 @@ public class MainActivity extends AppCompatActivity implements View.OnApplyWindo
             Log.e("MainActivity", "Something went wrong while we were establishing connection", e);
             service = null;
 
-            // We should reset the View for the case if we have sent it's surface to the client.
-            getLorieView().regenerate();
             handler.postDelayed(this::tryConnect, 250);
         }
+        return false;
     }
 
     void onPreferencesChanged(String key) {
@@ -669,6 +681,7 @@ public class MainActivity extends AppCompatActivity implements View.OnApplyWindo
             prefs.additionalKbdVisible.put(visible);
 
         setTerminalToolbarView();
+        getWindow().setSoftInputMode(prefs.Reseed.get() ? SOFT_INPUT_ADJUST_RESIZE : SOFT_INPUT_ADJUST_PAN);
     }
 
     public void toggleExtraKeys() {
@@ -826,14 +839,6 @@ public class MainActivity extends AppCompatActivity implements View.OnApplyWindo
         super.onPictureInPictureModeChanged(isInPictureInPictureMode, newConfig);
     }
 
-    /** @noinspection NullableProblems*/
-    @SuppressLint("WrongConstant")
-    @Override
-    public WindowInsets onApplyWindowInsets(View v, WindowInsets insets) {
-        handler.postDelayed(() -> getLorieView().triggerCallback(), 100);
-        return insets;
-    }
-
     /**
      * Manually toggle soft keyboard visibility
      * @param context calling context
@@ -859,7 +864,6 @@ public class MainActivity extends AppCompatActivity implements View.OnApplyWindo
             findViewById(R.id.mouse_buttons).setVisibility(prefs.showMouseHelper.get() && "1".equals(prefs.touchMode.get()) && connected ? View.VISIBLE : View.GONE);
             findViewById(R.id.stub).setVisibility(connected?View.INVISIBLE:View.VISIBLE);
             getLorieView().setVisibility(connected?View.VISIBLE:View.INVISIBLE);
-            getLorieView().regenerate();
 
             // We should recover connection in the case if file descriptor for some reason was broken...
             if (!connected)
