@@ -8,7 +8,7 @@
 #define AHARDWAREBUFFER_FORMAT_B8G8R8A8_UNORM 5 // Stands to HAL_PIXEL_FORMAT_BGRA_8888
 
 enum {
-    LORIEBUFFER_UNKNOWN,
+    LORIEBUFFER_UNKNOWN __unused,
     LORIEBUFFER_REGULAR,
     LORIEBUFFER_FD,
     LORIEBUFFER_AHARDWAREBUFFER,
@@ -17,8 +17,9 @@ enum {
 typedef struct {
     int32_t width, height, stride;
     uint8_t format, type;
-    AHardwareBuffer* buffer;
-    void* data;
+    uint64_t id;
+    AHardwareBuffer* _Nullable buffer;
+    void* _Nullable data;
 } LorieBuffer_Desc;
 
 typedef struct LorieBuffer LorieBuffer;
@@ -30,7 +31,7 @@ typedef struct LorieBuffer LorieBuffer;
  * @param size size of fragment in bytes.
  * @return negative value on error, positive or zero  in the case of file descriptor.
  */
-int LorieBuffer_createRegion(char const* name, size_t size);
+int LorieBuffer_createRegion(char const* _Nonnull name, size_t size);
 
 /**
  * Allocates new shareable buffer.
@@ -42,7 +43,7 @@ int LorieBuffer_createRegion(char const* name, size_t size);
  * @param type type of buffer. Accepts LORIEBUFFER_REGULAR or LORIEBUFFER_AHARDWAREBUFFER.
  * @return returns the buffer itself or NULL on failure.
  */
-LorieBuffer* LorieBuffer_allocate(int32_t width, int32_t height, int8_t format, int8_t type);
+LorieBuffer* _Nullable LorieBuffer_allocate(int32_t width, int32_t height, int8_t format, int8_t type);
 
 /**
  * Wraps given memory fragment file descriptor into LorieBuffer.
@@ -52,9 +53,11 @@ LorieBuffer* LorieBuffer_allocate(int32_t width, int32_t height, int8_t format, 
  * @param height height of buffer.
  * @param format format of buffer. Accepts AHARDWAREBUFFER_FORMAT_B8G8R8A8_UNORM or AHARDWAREBUFFER_FORMAT_R8G8B8X8_UNORM
  * @param fd file descriptor of buffer.
+ * @param size size of memory fragment.
+ * @param offset offset inside memory fragment.
  * @return
  */
-LorieBuffer* LorieBuffer_wrapFileDescriptor(int32_t width, int32_t height, int8_t format, int fd);
+LorieBuffer* _Nullable LorieBuffer_wrapFileDescriptor(int32_t width, int32_t stride, int32_t height, int8_t format, int fd, off_t offset);
 
 /**
  * Wraps given AHardwareBuffer into LorieBuffer.
@@ -63,7 +66,7 @@ LorieBuffer* LorieBuffer_wrapFileDescriptor(int32_t width, int32_t height, int8_
  * @param buffer buffer to be wrapped
  * @return
  */
-LorieBuffer* LorieBuffer_wrapAHardwareBuffer(AHardwareBuffer* buffer);
+LorieBuffer* _Nullable LorieBuffer_wrapAHardwareBuffer(AHardwareBuffer* _Nullable buffer);
 
 /**
  * Acquire a reference on the given LorieBuffer object.
@@ -73,7 +76,7 @@ LorieBuffer* LorieBuffer_wrapAHardwareBuffer(AHardwareBuffer* buffer);
  *
  * @param buffer the buffer
  */
-STATIC_INLINE void LorieBuffer_acquire(LorieBuffer* buffer) {
+STATIC_INLINE void LorieBuffer_acquire(LorieBuffer* _Nullable buffer) {
     if (!buffer)
         return;
 
@@ -86,9 +89,9 @@ STATIC_INLINE void LorieBuffer_acquire(LorieBuffer* buffer) {
  *
  * @param buffer the buffer
  */
-STATIC_INLINE void LorieBuffer_release(LorieBuffer* buffer) {
+STATIC_INLINE void LorieBuffer_release(LorieBuffer* _Nullable buffer) {
     void __LorieBuffer_free(LorieBuffer* buffer);
-    if (buffer && __sync_fetch_and_sub((int*) buffer, 1) == 1) // refcount is the first object in the struct
+    if (buffer && __sync_fetch_and_sub((int16_t*) buffer, 1) == 1) // refcount is the first object in the struct
         __LorieBuffer_free(buffer);
 }
 
@@ -98,7 +101,7 @@ STATIC_INLINE void LorieBuffer_release(LorieBuffer* buffer) {
  * @param buffer the buffer to be described
  * @return reference to description
  */
-const LorieBuffer_Desc* LorieBuffer_description(LorieBuffer* buffer);
+const LorieBuffer_Desc* _Nonnull LorieBuffer_description(LorieBuffer* _Nullable buffer);
 
 /**
  * Lock the AHardwareBuffer for direct CPU access.
@@ -109,7 +112,7 @@ const LorieBuffer_Desc* LorieBuffer_description(LorieBuffer* buffer);
  * @param out description of the buffer
  * @return 0 on success, not 0 on failure
  */
-int LorieBuffer_lock(LorieBuffer* buffer, void** out);
+int LorieBuffer_lock(LorieBuffer* _Nullable buffer, void* _Nullable * _Nonnull out);
 
 /**
  * Unlock the AHardwareBuffer from direct CPU access.
@@ -118,7 +121,7 @@ int LorieBuffer_lock(LorieBuffer* buffer, void** out);
  * @param buffer
  * @return
  */
-int LorieBuffer_unlock(LorieBuffer* buffer);
+int LorieBuffer_unlock(LorieBuffer* _Nullable buffer);
 
 /**
  * Send the AHardwareBuffer to an AF_UNIX socket.
@@ -126,7 +129,7 @@ int LorieBuffer_unlock(LorieBuffer* buffer);
  * @param buffer
  * @param socketFd
  */
-void LorieBuffer_sendHandleToUnixSocket(LorieBuffer* buffer, int socketFd);
+void LorieBuffer_sendHandleToUnixSocket(LorieBuffer* _Nonnull buffer, int socketFd);
 
 /**
  * Receive an AHardwareBuffer from an AF_UNIX socket.
@@ -134,14 +137,80 @@ void LorieBuffer_sendHandleToUnixSocket(LorieBuffer* buffer, int socketFd);
  * @param socketFd
  * @param outBuffer
  */
-void LorieBuffer_recvHandleFromUnixSocket(int socketFd, LorieBuffer** outBuffer);
+void LorieBuffer_recvHandleFromUnixSocket(int socketFd, LorieBuffer* _Nullable * _Nullable outBuffer);
 
-void LorieBuffer_attachToGL(LorieBuffer* buffer);
-void LorieBuffer_bindTexture(LorieBuffer *buffer);
+/**
+ * Attach buffer to GL. Must be done on GL thread.
+ * After attaching subsequent call to LorieBuffer_release must be done only from GL thread.
+ *
+ * @param buffer the buffer to be attached.
+ */
+void LorieBuffer_attachToGL(LorieBuffer* _Nullable buffer);
 
-int LorieBuffer_getWidth(LorieBuffer *buffer);
-int LorieBuffer_getHeight(LorieBuffer *buffer);
-bool LorieBuffer_isRgba(LorieBuffer *buffer);
+/**
+ * Call glBindTexture for the buffer.
+ *
+ * @param buffer the buffer to be bound.
+ */
+void LorieBuffer_bindTexture(LorieBuffer* _Nullable buffer);
+
+/**
+ * Get width of the buffer.
+ *
+ * @param buffer
+ * @return
+ */
+
+int LorieBuffer_getWidth(LorieBuffer* _Nullable buffer);
+/**
+ * Get height of the buffer.
+ *
+ * @param buffer
+ * @return
+ */
+int LorieBuffer_getHeight(LorieBuffer* _Nullable buffer);
+
+/**
+ * Check if the buffer is RGBA.
+ *
+ * @param buffer
+ * @return
+ */
+bool LorieBuffer_isRgba(LorieBuffer* _Nullable buffer);
+
+struct xorg_list;
+
+/**
+ * Add the buffer to xorg_list.
+ *
+ * @param buffer
+ * @param list
+ */
+void LorieBuffer_addToList(LorieBuffer* _Nullable buffer, struct xorg_list* _Nullable list);
+
+/**
+ * Remove the buffer from xorg_list.
+ *
+ * @param buffer
+ */
+void LorieBuffer_removeFromList(LorieBuffer* _Nullable buffer);
+
+/**
+ * Get the first buffer in the list.
+ *
+ * @param list
+ * @return buffer if it is present, NULL otherwise.
+ */
+LorieBuffer* _Nullable LorieBufferList_first(struct xorg_list* _Nullable list);
+
+/**
+ * Find the buffer with given ID in the list
+ *
+ * @param list
+ * @param id
+ * @return buffer if it is present, NULL otherwise.
+ */
+LorieBuffer* _Nullable LorieBufferList_findById(struct xorg_list* _Nullable list, uint64_t id);
 
 #undef STATIC_INLINE
 
