@@ -85,9 +85,9 @@ typedef struct {
 ScreenPtr pScreenPtr;
 static lorieScreenInfo lorieScreen = {
         .stateFd = -1,
-        .root.width = 1280,
-        .root.height = 1024,
-        .root.framerate = 30,
+        .root.width = 1024,
+        .root.height = 1050,
+        .root.framerate = 60,
         .root.name = "screen",
         .dri3 = TRUE,
         .vblank_queue = { &lorieScreen.vblank_queue, &lorieScreen.vblank_queue },
@@ -446,12 +446,13 @@ static Bool lorieRedraw(__unused ClientPtr pClient, __unused void *closure) {
     return TRUE;
 }
 
+static CARD32 kuya = 5000;
 static CARD32 lorieFramecounter(unused OsTimerPtr timer, unused CARD32 time, unused void *arg) {
-    if (pvfb->state->renderedFrames)
-        log(INFO, "%d frames in 5.0 seconds = %.1f FPS",
-            pvfb->state->renderedFrames, ((float) pvfb->state->renderedFrames) / 5);
-    pvfb->state->renderedFrames = 0;
-    return 5000;
+    // if (pvfb->state->renderedFrames)
+    //   log(INFO, "%d frames in 5.0 seconds = %.1f FPS",
+    //        pvfb->state->renderedFrames, ((float) pvfb->state->renderedFrames) / 5);
+    // pvfb->state->renderedFrames = 0;
+    return kuya;
 }
 
 static Bool lorieCreateScreenResources(ScreenPtr pScreen) {
