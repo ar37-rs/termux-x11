@@ -445,9 +445,9 @@ static Bool lorieRedraw(__unused ClientPtr pClient, __unused void *closure) {
 
     return TRUE;
 }
-
+static const CARD32 framec = 5000;
 static CARD32 lorieFramecounter(unused OsTimerPtr timer, unused CARD32 time, unused void *arg) {
-    return 5000;
+    return framec;
 }
 
 static Bool lorieCreateScreenResources(ScreenPtr pScreen) {
