@@ -19,7 +19,6 @@
         android:hardwareAccelerated="true"
         tools:ignore="DataExtractionRules,GoogleAppIndexingWarning">
         <activity
-            android:hardwareAccelerated="true"
             android:name=".MainActivity"
             android:taskAffinity=".MainActivity"
             android:launchMode="singleInstance"
