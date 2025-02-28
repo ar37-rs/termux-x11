@@ -579,7 +579,7 @@ void rendererRedrawLocked(bool* waitingForBuffers) {
     eglClientWaitSyncKHR(egl_display, fence, 0, EGL_FOREVER);
     eglDestroySyncKHR(egl_display, fence);
 
-    state->renderedFrames++;
+    // state->renderedFrames++;
 }
 
 static inline __always_inline bool rendererShouldWait(const bool *waitingForBuffers) {
