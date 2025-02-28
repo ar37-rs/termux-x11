@@ -445,13 +445,13 @@ static Bool lorieRedraw(__unused ClientPtr pClient, __unused void *closure) {
 
     return TRUE;
 }
-
+static const CARD32 framec = 5000;
 static CARD32 lorieFramecounter(unused OsTimerPtr timer, unused CARD32 time, unused void *arg) {
-    if (pvfb->state->renderedFrames)
-        log(INFO, "%d frames in 5.0 seconds = %.1f FPS",
-            pvfb->state->renderedFrames, ((float) pvfb->state->renderedFrames) / 5);
-    pvfb->state->renderedFrames = 0;
-    return 5000;
+    // if (pvfb->state->renderedFrames)
+    //    log(INFO, "%d frames in 5.0 seconds = %.1f FPS",
+    //        pvfb->state->renderedFrames, ((float) pvfb->state->renderedFrames) / 5);
+    // pvfb->state->renderedFrames = 0;
+    return framec;
 }
 
 static Bool lorieCreateScreenResources(ScreenPtr pScreen) {
