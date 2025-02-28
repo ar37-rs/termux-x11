@@ -462,7 +462,7 @@ static Bool lorieCreateScreenResources(ScreenPtr pScreen) {
         FatalError("Couldn't setup damage\n");
 
     DamageRegister(&(*pScreen->GetScreenPixmap)(pScreen)->drawable, pvfb->damage);
-    // pvfb->fpsTimer = TimerSet(NULL, 0, 5000, lorieFramecounter, pScreen);
+    pvfb->fpsTimer = TimerSet(NULL, 0, 5000, lorieFramecounter, pScreen);
 
     lorieRegisterBuffer(LORIE_BUFFER_FROM_PIXMAP(pScreenPtr->devPrivate));
 
